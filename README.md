@@ -23,6 +23,9 @@ ACTSkill editor.
 You can inherit `AnimationProcessor` to handle animation during editing.
 Default use Animator to play animation.
 
+# Version Support
+Unity 2019_3_OR_NEWER
+
 # Dependencies
 - "com.mr-sb.customizationinspector": "https://github.com/Mr-sB/CustomizationInspector.git",
 - "com.unity.editorcoroutines": "1.0.0"
