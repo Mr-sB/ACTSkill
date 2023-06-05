@@ -11,15 +11,25 @@ namespace ACTSkillEditor
     public abstract class SkillWindowHandlerBase
     {
         public readonly ACTSkillEditorWindow Owner;
+        private bool firstOnGUI = true;
 
         public SkillWindowHandlerBase(ACTSkillEditorWindow owner)
         {
             Owner = owner;
         }
         
+        public virtual void Awake() { }
+        
         public virtual void OnEnable() { }
         
         public virtual void OnDisable() { }
+
+        public void OnGUI()
+        {
+            if (!firstOnGUI) return;
+            firstOnGUI = false;
+            OnEnable();
+        }
 
         public virtual void BeginOnGUI() { }
         
@@ -35,7 +45,7 @@ namespace ACTSkillEditor
         {
         }
 
-        public override void OnEnable()
+        public override void Awake()
         {
             foreach (var type in TypeCache.GetTypesDerivedFrom<AnimationProcessor>())
             {
@@ -94,9 +104,13 @@ namespace ACTSkillEditor
         {
         }
 
-        public override void OnEnable()
+        public override void Awake()
         {
             oriTarget = Owner.Target;
+        }
+
+        public override void OnEnable()
+        {
             Selection.selectionChanged += OnSelectionChanged;
             OnSelectionChanged();
         }

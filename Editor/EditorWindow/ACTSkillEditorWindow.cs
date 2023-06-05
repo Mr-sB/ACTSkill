@@ -402,12 +402,13 @@ namespace ACTSkillEditor
                 skillWindowHandler = new EditorSkillWindowHandler(this);
             else
                 skillWindowHandler = new RuntimeSkillWindowHandler(this);
-            skillWindowHandler.OnEnable();
+            skillWindowHandler.Awake();
             Repaint();
         }
 
         private void OnGUI()
         {
+            skillWindowHandler.OnGUI();
             skillWindowHandler.BeginOnGUI();
             Rect viewRect = new Rect(0, 0, FlexibleWidth, MenuViewHeight);
             DrawMenuView(viewRect);
