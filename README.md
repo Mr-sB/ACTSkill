@@ -1,14 +1,14 @@
 # ACTSkill
 ACTSkill editor.
 
-# Feature
+## Feature
 - Visual editing attack/body range.
 - Timeline to set action.
 
-# Editor Window
+## Editor Window
 ![image](Screenshots~/EditorWindow.png)
 
-# Usage
+## Usage
 - Click "ACTSkill/Skill Editor" menu item to open editor window.
 - Add state, edit state values, and edit frame count.
 - Select frame to edit attack/body range.
@@ -19,16 +19,16 @@ ACTSkill editor.
 - Implement `IMachineController` to drive machine. 
   Some life cycle events can listen from `MachineBehaviour` and `StateHandler`.
 
-# Animation
+## Animation
 You can inherit `AnimationProcessor` to handle animation during editing.
 Default use Animator to play animation.
 
-# Version Support
+## Version Support
 Unity 2019_3_OR_NEWER
 
-# Dependencies
+## Dependencies
 - "com.mr-sb.customizationinspector": "https://github.com/Mr-sB/CustomizationInspector.git",
 - "com.unity.editorcoroutines": "1.0.0"
 
-# Demo
+## Demo
 https://github.com/Mr-sB/ACTSkillDemo
