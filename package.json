@@ -13,7 +13,6 @@
     "type": "git"
   },
   "dependencies": {
-    "com.unity.editorcoroutines": "1.0.0",
-    "com.mr-sb.customizationinspector": "https://github.com/Mr-sB/CustomizationInspector.git"
+    "com.unity.editorcoroutines": "1.0.0"
   }
 }
