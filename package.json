@@ -1,0 +1,19 @@
+{
+  "name": "com.mr-sb.actskill",
+  "displayName": "ACT Skill",
+  "version": "1.0.0",
+  "keywords": [
+    "unity",
+    "act",
+    "editor"
+  ],
+  "description": "ACT Skill editor.",
+  "repository": {
+    "url": "https://github.com/Mr-sB/ACTSkill.git",
+    "type": "git"
+  },
+  "dependencies": {
+    "com.unity.editorcoroutines": "1.0.0",
+    "com.mr-sb.customizationinspector": "https://github.com/Mr-sB/CustomizationInspector.git"
+  }
+}

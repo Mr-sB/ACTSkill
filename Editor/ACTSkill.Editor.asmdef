@@ -1,0 +1,20 @@
+{
+    "name": "MrsB.ACTSkill.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:362178d369fff4ec19ea6f2b6233403b",
+        "GUID:478a2357cc57436488a56e564b08d223",
+        "GUID:1bfc7c867790342f8af5f18e0298cb0d"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
