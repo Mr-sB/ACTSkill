@@ -582,6 +582,18 @@ namespace ACTSkillEditor
         {
             actionListView.Draw(rect);
         }
+
+        public void ShowNotification(GUIContent content, double duration = 4.0, LogType? logType = LogType.Log)
+        {
+            base.ShowNotification(content, duration);
+            if (logType.HasValue)
+                Debug.unityLogger.Log(logType.Value, content.text);
+        }
+        
+        public void ShowNotification(string content, double duration = 4.0, LogType? logType = LogType.Log)
+        {
+            ShowNotification(EditorUtil.TempContent(content), duration, logType);
+        }
         
         public void RefreshAnimationProcessor()
         {
@@ -606,19 +618,19 @@ namespace ACTSkillEditor
         {
             if (curMachine == null)
             {
-                ShowNotification(EditorUtil.TempContent("Save failed, does not exist Machine Data!"), 3);
+                ShowNotification("Save failed, does not exist Machine Data!", 3, LogType.Error);
                 return;
             }
             if (!configAsset)
             {
-                ShowNotification(EditorUtil.TempContent("Save failed, does not exist Config Asset!"), 3);
+                ShowNotification("Save failed, does not exist Config Asset!", 3, LogType.Error);
                 return;
             }
 
             string path = AssetDatabase.GetAssetPath(configAsset);
             Save(path);
             Debug.Log("Save success. Path: " + path);
-            ShowNotification(EditorUtil.TempContent("Save success"), 3);
+            ShowNotification("Save success", 3, null);
             EditorUtility.SetDirty(configAsset);
             AssetDatabase.SaveAssetIfDirty(configAsset);
             AssetDatabase.Refresh();
@@ -633,7 +645,7 @@ namespace ACTSkillEditor
         {
             if (curMachine == null)
             {
-                ShowNotification(EditorUtil.TempContent("SaveAs failed, does not exist Machine Config!"), 3);
+                ShowNotification("SaveAs failed, does not exist Machine Config!", 3, LogType.Error);
                 return;
             }
 
@@ -642,7 +654,7 @@ namespace ACTSkillEditor
             if (string.IsNullOrEmpty(path)) return;
             Save(path);
             Debug.Log("SaveAs success. Path: " + path);
-            ShowNotification(EditorUtil.TempContent("SaveAs success"), 3);
+            ShowNotification("SaveAs success", 3, null);
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             if (!configAsset)
@@ -668,11 +680,11 @@ namespace ACTSkillEditor
             if (!TryReload(out var error))
             {
                 if (!string.IsNullOrEmpty(error))
-                    ShowNotification(EditorUtil.TempContent("Reload failed. " + error), 3);
+                    ShowNotification("Reload failed. " + error, 3, LogType.Error);
             }
             else
             {
-                ShowNotification(EditorUtil.TempContent("Reload success"), 3);
+                ShowNotification("Reload success", 3, null);
                 Debug.Log("Reload success. Path: " + AssetDatabase.GetAssetPath(configAsset));
             }
         }

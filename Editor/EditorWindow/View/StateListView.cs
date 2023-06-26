@@ -136,7 +136,7 @@ namespace ACTSkillEditor
                         l.index = l.list.Count - 1;
                     }
                     else if (Owner)
-                        Owner.ShowNotification(EditorUtil.TempContent("Can not add state with same name!"), 3);
+                        Owner.ShowNotification("Can not add state with same name!", 3, LogType.Error);
                 };
                 newStateWindow.ShowAsDropDown(rect);
             };

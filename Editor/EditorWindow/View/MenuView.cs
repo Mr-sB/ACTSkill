@@ -104,7 +104,7 @@ namespace ACTSkillEditor
                 if (newFrameRate > 0)
                     SetFrameRate(newFrameRate);
                 else if (Owner)
-                    Owner.ShowNotification(EditorUtil.TempContent("Can not set 0 or negative frame rate!"), 3);
+                    Owner.ShowNotification("Can not set 0 or negative frame rate!", 3, LogType.Error);
             };
             window.ShowAsDropDown(data.Item2);
         }
