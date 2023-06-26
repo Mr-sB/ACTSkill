@@ -107,6 +107,8 @@ namespace ACTSkillEditor
             }
         }
 
+        // Don not recover data after compilation.
+        [NonSerialized]
         private StateConfig curState;
         public StateConfig CurState
         {
@@ -124,6 +126,7 @@ namespace ACTSkillEditor
             }
         }
 
+        [NonSerialized]
         private List<FrameConfig> curFrames;
 
         public List<FrameConfig> CurFrames
@@ -138,6 +141,7 @@ namespace ACTSkillEditor
             }
         }
         
+        [NonSerialized]
         private ActionConfig curActionConfig;
         public ActionConfig CurActionConfig
         {
@@ -151,6 +155,7 @@ namespace ACTSkillEditor
             }
         }
 
+        [NonSerialized]
         private FrameConfig curFrameConfig;
 
         public FrameConfig CurFrameConfig
@@ -169,6 +174,7 @@ namespace ACTSkillEditor
             }
         }
 
+        [NonSerialized]
         private IAction curAction;
         public IAction CurAction
         {
@@ -182,6 +188,7 @@ namespace ACTSkillEditor
             }
         }
         
+        [NonSerialized]
         private int selectedStateIndex = -1;
         public int SelectedStateIndex
         {
@@ -196,6 +203,7 @@ namespace ACTSkillEditor
             }
         }
         
+        [NonSerialized]
         private int selectedFrameIndex = -1;
         public int SelectedFrameIndex
         {
@@ -210,6 +218,7 @@ namespace ACTSkillEditor
             }
         }
 
+        [NonSerialized]
         private int selectedActionIndex = -1;
         public int SelectedActionIndex
         {
@@ -224,6 +233,7 @@ namespace ACTSkillEditor
             }
         }
         
+        [NonSerialized]
         private int selectedAttackRangeIndex = -1;
         public int SelectedAttackRangeIndex
         {
@@ -238,6 +248,7 @@ namespace ACTSkillEditor
             }
         }
         
+        [NonSerialized]
         private int selectedBodyRangeIndex = -1;
         public int SelectedBodyRangeIndex
         {
@@ -344,10 +355,8 @@ namespace ACTSkillEditor
 
         private void OnEnable()
         {
-            // Clear old fields, otherwise old fields data will be left behind after compilation.
-            var oldMachine = CurMachine;
-            ClearConfig();
-            CurMachine = oldMachine ?? new MachineConfig();
+            if (curMachine == null)
+                CurMachine = new MachineConfig();
             
             SceneView.duringSceneGui += OnSceneGUI;
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
@@ -691,7 +700,6 @@ namespace ACTSkillEditor
 
         public void ClearConfig()
         {
-            if (curMachine == null) return;
             CurMachine = new MachineConfig();
         }
 
