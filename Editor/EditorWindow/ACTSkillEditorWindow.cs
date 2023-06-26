@@ -92,7 +92,7 @@ namespace ACTSkillEditor
             }
         }
         
-        private MachineConfig curMachine;
+        private MachineConfig curMachine = new MachineConfig();
         public MachineConfig CurMachine
         {
             get => curMachine;
@@ -344,6 +344,8 @@ namespace ACTSkillEditor
 
         private void OnEnable()
         {
+            if (curMachine == null)
+                CurMachine = new MachineConfig();
             SceneView.duringSceneGui += OnSceneGUI;
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
             OnPlayModeStateChanged(Application.isPlaying ? PlayModeStateChange.EnteredPlayMode : PlayModeStateChange.EnteredEditMode);
