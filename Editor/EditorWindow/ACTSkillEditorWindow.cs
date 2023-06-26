@@ -344,8 +344,11 @@ namespace ACTSkillEditor
 
         private void OnEnable()
         {
-            if (curMachine == null)
-                CurMachine = new MachineConfig();
+            // Clear old fields, otherwise old fields data will be left behind after compilation.
+            var oldMachine = CurMachine;
+            ClearConfig();
+            CurMachine = oldMachine ?? new MachineConfig();
+            
             SceneView.duringSceneGui += OnSceneGUI;
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
             OnPlayModeStateChanged(Application.isPlaying ? PlayModeStateChange.EnteredPlayMode : PlayModeStateChange.EnteredEditMode);
