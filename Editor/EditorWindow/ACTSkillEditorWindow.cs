@@ -91,16 +91,32 @@ namespace ACTSkillEditor
                 RepaintSceneViews();
             }
         }
-        
-        private MachineConfig curMachine = new MachineConfig();
+
+        private MachineConfigSO curMachineConfigSO;
+
+        public MachineConfigSO CurMachineConfigSO
+        {
+            get => curMachineConfigSO;
+            private set
+            {
+                curMachineConfigSO = value;
+                if (serializedObject?.targetObject != curMachineConfigSO)
+                {
+                    serializedObject?.Dispose();
+                    serializedObject = new SerializedObject(curMachineConfigSO);
+                }
+            }
+        }
+
         public MachineConfig CurMachine
         {
-            get => curMachine;
-            set
+            get => CurMachineConfigSO.Config;
+            private set
             {
-                if (curMachine == value) return;
+                if (CurMachineConfigSO.Config == value) return;
                 OnPropertyChanging();
-                curMachine = value;
+                RecordObject("Change machine config");
+                CurMachineConfigSO.Config = value;
                 OnPropertyChanged();
                 //Clear selection
                 SelectedStateIndex = -1;
@@ -175,8 +191,8 @@ namespace ACTSkillEditor
         }
 
         [NonSerialized]
-        private IAction curAction;
-        public IAction CurAction
+        private ActionBase curAction;
+        public ActionBase CurAction
         {
             get => curAction;
             private set
@@ -289,17 +305,65 @@ namespace ACTSkillEditor
         
         #endregion
 
+        #region SerializedObject
+        
+        private SerializedObject serializedObject;
+        public SerializedObject SerializedObject => serializedObject?.targetObject == null ? null : serializedObject;
+
+        public SerializedProperty CurMachineProperty => SerializedObject?.FindProperty(nameof(MachineConfigSO.Config));
+
+        public SerializedProperty StateListProperty => CurMachineProperty?.FindPropertyRelative(nameof(MachineConfig.States));
+
+        public SerializedProperty CurStateProperty
+        {
+            get
+            {
+                if (SelectedStateIndex < 0) return null;
+                var property = StateListProperty;
+                if (property == null || property.arraySize <= selectedStateIndex) return null;
+                return property.GetArrayElementAtIndex(SelectedStateIndex);
+            }
+        }
+
+        public SerializedProperty CurFrameListProperty => CurStateProperty?.FindPropertyRelative(nameof(StateConfig.Frames));
+        
+        public SerializedProperty CurFrameConfigProperty
+        {
+            get
+            {
+                if (selectedFrameIndex < 0) return null;
+                var property = CurFrameListProperty;
+                if (property == null || property.arraySize <= selectedFrameIndex) return null;
+                return property.GetArrayElementAtIndex(selectedFrameIndex);
+            }
+        }
+        
+        public SerializedProperty CurActionConfigProperty => CurStateProperty?.FindPropertyRelative(nameof(StateConfig.ActionConfig));
+        public SerializedProperty CurActionListProperty => CurActionConfigProperty?.FindPropertyRelative(nameof(ActionConfig.Actions));
+        public SerializedProperty CurActionProperty
+        {
+            get
+            {
+                if (selectedActionIndex < 0) return null;
+                var property = CurActionListProperty;
+                if (property == null || property.arraySize <= selectedActionIndex) return null;
+                return property.GetArrayElementAtIndex(selectedActionIndex);
+            }
+        }
+
+        #endregion
+        
 
         #region View
 
-        private List<ViewBase> views;
-        private MenuView menuView;
-        private StateListView stateListView;
-        private StateSettingView stateSettingView;
-        private TimelineView timelineView;
-        private RangeView attackRangeView;
-        private RangeView bodyRangeView;
-        private ActionListView actionListView;
+        public List<ViewBase> views;
+        public MenuView menuView;
+        public StateListView stateListView;
+        public StateSettingView stateSettingView;
+        public TimelineView timelineView;
+        public RangeView attackRangeView;
+        public RangeView bodyRangeView;
+        public ActionListView actionListView;
 
         #endregion
 
@@ -355,11 +419,18 @@ namespace ACTSkillEditor
 
         private void OnEnable()
         {
-            if (curMachine == null)
-                CurMachine = new MachineConfig();
+            // Init data
+            if (curMachineConfigSO == null)
+                CurMachineConfigSO = CreateInstance<MachineConfigSO>();
+            if (serializedObject?.targetObject != curMachineConfigSO)
+            {
+                serializedObject?.Dispose();
+                serializedObject = new SerializedObject(curMachineConfigSO);
+            }
             
             SceneView.duringSceneGui += OnSceneGUI;
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            Undo.undoRedoPerformed += OnUndoRedoPerformed;
             OnPlayModeStateChanged(Application.isPlaying ? PlayModeStateChange.EnteredPlayMode : PlayModeStateChange.EnteredEditMode);
             
             CreateViews();
@@ -373,7 +444,7 @@ namespace ACTSkillEditor
             foreach (var sceneGUI in sceneGUIs)
                 sceneGUI.OnEnable();
         }
-        
+
         private void CreateViews()
         {
             views = new List<ViewBase>();
@@ -390,10 +461,10 @@ namespace ACTSkillEditor
             timelineView = new TimelineView(this);
             views.Add(timelineView);
             
-            attackRangeView = new RangeView(this, "Attack Range View", new AttackRangeViewHandler());
+            attackRangeView = new RangeView(this, "Attack Range View", new AttackRangeViewHandler(this));
             views.Add(attackRangeView);
             
-            bodyRangeView = new RangeView(this, "Body Range View", new BodyRangeViewHandler());
+            bodyRangeView = new RangeView(this, "Body Range View", new BodyRangeViewHandler(this));
             views.Add(bodyRangeView);
             
             actionListView = new ActionListView(this);
@@ -419,9 +490,19 @@ namespace ACTSkillEditor
             skillWindowHandler.Awake();
             Repaint();
         }
+        
+        private void OnUndoRedoPerformed()
+        {
+            RecordObject();
+            SerializedObject?.Update();
+            ApplyModifiedProperties();
+            Repaint();
+        }
 
         private void OnGUI()
         {
+            if (SerializedObject == null) return;
+            SerializedObject.UpdateIfRequiredOrScript();
             skillWindowHandler.OnGUI();
             skillWindowHandler.BeginOnGUI();
             Rect viewRect = new Rect(0, 0, FlexibleWidth, MenuViewHeight);
@@ -466,6 +547,8 @@ namespace ACTSkillEditor
             viewRect.height = attackRangeHeight;
             DrawActionListView(viewRect);
             skillWindowHandler.EndOnGUI();
+            
+            SerializedObject.ApplyModifiedProperties();
         }
 
         private void OnSceneGUI(SceneView sceneView)
@@ -497,6 +580,7 @@ namespace ACTSkillEditor
             EditorPrefs.SetBool(ShowSceneGUISaveKey, ShowSceneGUI);
             SceneView.duringSceneGui -= OnSceneGUI;
             EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            Undo.undoRedoPerformed -= OnUndoRedoPerformed;
 
             foreach (var view in views)
                 view.OnDisable();
@@ -508,6 +592,8 @@ namespace ACTSkillEditor
             
             skillWindowHandler?.OnDisable();
             skillWindowHandler = null;
+            serializedObject?.Dispose();
+            serializedObject = null;
         }
 
         private void DrawMenuView(Rect rect)
@@ -603,6 +689,16 @@ namespace ACTSkillEditor
         {
             ShowNotification(EditorUtil.TempContent(content), duration, logType);
         }
+
+        public void ApplyModifiedProperties()
+        {
+            SerializedObject?.ApplyModifiedProperties();
+        }
+        
+        public void RecordObject(string name = "Change machine config")
+        {
+            Undo.RecordObject(CurMachineConfigSO, name);
+        }
         
         public void RefreshAnimationProcessor()
         {
@@ -625,7 +721,7 @@ namespace ACTSkillEditor
 
         public void Save()
         {
-            if (curMachine == null)
+            if (CurMachine == null)
             {
                 ShowNotification("Save failed, does not exist Machine Data!", 3, LogType.Error);
                 return;
@@ -647,12 +743,12 @@ namespace ACTSkillEditor
 
         private void Save(string path)
         {
-            File.WriteAllText(path, curMachine.Serialize(true));
+            File.WriteAllText(path, CurMachine.Serialize(true));
         }
 
         public void SaveAs()
         {
-            if (curMachine == null)
+            if (CurMachine == null)
             {
                 ShowNotification("SaveAs failed, does not exist Machine Config!", 3, LogType.Error);
                 return;

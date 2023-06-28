@@ -16,8 +16,6 @@ namespace ACTSkillEditor
             private const float SPACE = 2;
             public ReorderableList ReorderableList { private set; get; }
             private float elementOffsetX = 10;
-            private GUIContent guiContent;
-            private GUIContent GUIContent => guiContent ??= new GUIContent();
             public event Action<int> OnDrawActiveIndex;
             
             public RangesReorderableList() { }
@@ -29,7 +27,7 @@ namespace ACTSkillEditor
             
             private ReorderableList InitReorderableList(SerializedProperty property)
             {
-                ReorderableList list = new ReorderableList(property.serializedObject, property.FindPropertyRelative(nameof(RangeConfig.Ranges)),
+                ReorderableList list = new ReorderableList(property.serializedObject, property,
                     true, true, true, true);
                 list.multiSelect = false;
                 list.drawHeaderCallback = position =>
@@ -71,11 +69,7 @@ namespace ACTSkillEditor
 
                     // var oldLabelWidth = EditorGUIUtility.labelWidth;
                     // EditorGUIUtility.labelWidth = 80;
-                    // Do not use EditorUtil.TempContent to PropertyField
-                    GUIContent.text = element.displayName;
-                    GUIContent.tooltip = element.tooltip;
-                    EditorGUI.PropertyField(rect, element, GUIContent, true);
-                    // EditorGUI.PropertyField(rect, element, new GUIContent(element.displayName, element.tooltip), true);
+                    EditorGUI.PropertyField(rect, element, true);
                     // EditorGUIUtility.labelWidth = oldLabelWidth;
 
                     if (active)
@@ -103,7 +97,7 @@ namespace ACTSkillEditor
             {
                 if (ReorderableList == null)
                     ReorderableList = InitReorderableList(property);
-                else
+                else if (ReorderableList.serializedProperty != property)
                     ReorderableList.serializedProperty = property;
                 return ReorderableList;
             }

@@ -9,7 +9,9 @@ namespace ACTSkill
     public class MachineConfig : ICopyable
     {
         public int FrameRate = 30;
+        [LabelWidth(116)]
         public string DefaultStateName;
+        [LabelWidth(116)]
         public AnimationTransitionConfig DefaultStateTransition = new AnimationTransitionConfig();
         [LabelWidth(125)]
         public List<StateConfig> States = new List<StateConfig>();

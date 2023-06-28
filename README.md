@@ -4,6 +4,7 @@ ACTSkill editor.
 ## Feature
 - Visual editing attack/body range.
 - Timeline to set action.
+- Support undo redo.
 
 ## Editor Window
 ![image](Screenshots~/EditorWindow.png)
@@ -13,11 +14,11 @@ ACTSkill editor.
 - Add state, edit state values, and edit frame count.
 - Select frame to edit attack/body range.
 - Add action.
-    - Inherit `IAction` or `EditableFramesAction` to define action config class.
+    - Inherit `ActionBase` class to define action config class.
       Must add `[Serializable]` attribute to config class.
-    - Inherit `IActionHandler` to handle action logic.
-- Implement `IMachineController` to drive machine. 
-  Some life cycle events can listen from `MachineBehaviour` and `StateHandler`.
+    - Implement `IActionHandler` interface to handle action logic.
+- Implement `IMachineController` interface to drive machine.
+  Some lifecycle events can be listened from `MachineBehaviour` and `StateHandler`.
 
 ## Animation
 You can inherit `AnimationProcessor` to handle animation during editing.

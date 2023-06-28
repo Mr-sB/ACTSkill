@@ -65,15 +65,16 @@ namespace ACTSkill
     }
 
     [Serializable]
-    public class CircleRange : Range2DBase, IRange
+    public class CircleRange : IRange
     {
+        public Vector2 Offset = Vector2.zero;
         public float Radius = 0.5f;
 
         public CircleRange() { }
 
-        public CircleRange(Vector2 offset, float rotation, float radius)
+        public CircleRange(Vector2 offset, float radius)
         {
-            Copy(offset, rotation, radius);
+            Copy(offset, radius);
         }
 
         public CircleRange(CircleRange other)
@@ -81,6 +82,26 @@ namespace ACTSkill
             Copy(other);
         }
 
+        public Vector3? GetOffset()
+        {
+            return Offset;
+        }
+
+        public void SetOffset(Vector3 offset)
+        {
+            Offset = offset;
+        }
+
+        public Vector3? GetRotation()
+        {
+            return null;
+        }
+
+        public void SetRotation(Vector3 rotation)
+        {
+            
+        }
+        
         public Vector3? GetSize()
         {
             return Vector2.one.normalized * Radius;
@@ -112,16 +133,16 @@ namespace ACTSkill
             return Clone();
         }
 
-        public void Copy(Vector2 offset, float rotation, float radius)
+        public void Copy(Vector2 offset, float radius)
         {
-            Copy(offset, rotation);
+            Offset = offset;
             Radius = radius;
         }
 
         public void Copy(CircleRange other)
         {
             if (other == null) return;
-            Copy(other.Offset, other.Rotation, other.Radius);
+            Copy(other.Offset, other.Radius);
         }
     }
 
@@ -187,15 +208,16 @@ namespace ACTSkill
     }
 
     [Serializable]
-    public class SphereRange : Range3DBase, IRange
+    public class SphereRange : IRange
     {
+        public Vector3 Offset = Vector3.zero;
         public float Radius = 0.5f;
 
         public SphereRange() { }
         
-        public SphereRange(Vector3 offset, Vector3 rotation, float radius)
+        public SphereRange(Vector3 offset, float radius)
         {
-            Copy(offset, rotation, radius);
+            Copy(offset, radius);
         }
 
         public SphereRange(SphereRange other)
@@ -203,6 +225,26 @@ namespace ACTSkill
             Copy(other);
         }
 
+        public Vector3? GetOffset()
+        {
+            return Offset;
+        }
+
+        public void SetOffset(Vector3 offset)
+        {
+            Offset = offset;
+        }
+
+        public Vector3? GetRotation()
+        {
+            return null;
+        }
+
+        public void SetRotation(Vector3 rotation)
+        {
+            
+        }
+        
         public Vector3? GetSize()
         {
             return Vector3.one.normalized * Radius;
@@ -234,16 +276,16 @@ namespace ACTSkill
             return Clone();
         }
         
-        public void Copy(Vector3 offset, Vector3 rotation, float radius)
+        public void Copy(Vector3 offset, float radius)
         {
-            Copy(offset, rotation);
+            Offset = offset;
             Radius = radius;
         }
 
         public void Copy(SphereRange other)
         {
             if (other == null) return;
-            Copy(other.Offset, other.Rotation, other.Radius);
+            Copy(other.Offset, other.Radius);
         }
     }
 }

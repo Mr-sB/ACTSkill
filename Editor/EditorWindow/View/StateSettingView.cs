@@ -1,6 +1,4 @@
-using System.ComponentModel;
 using ACTSkill;
-using CustomizationInspector.Editor;
 using UnityEditor;
 using UnityEngine;
 
@@ -16,55 +14,17 @@ namespace ACTSkillEditor
         }
 
         private Vector2 scrollPosition = Vector2.zero;
-        private WrapperSO wrapperSO;
-        private SerializedObject serializedObject;
-        public StateConfig Data { private set; get; }
-        
+
+        public StateConfig Data => Owner ? Owner.CurState : null;
+
         public StateSettingView(ACTSkillEditorWindow owner) : base(owner)
         {
-        }
-
-        private WrapperSO GetOrCreateWrapperSO()
-        {
-            if (!wrapperSO)
-                wrapperSO = ScriptableObject.CreateInstance<WrapperSO>();
-            return wrapperSO;
         }
         
         public override void OnEnable()
         {
             if (string.IsNullOrEmpty(title))
                 title = ObjectNames.NicifyVariableName(nameof(StateSettingView));
-            Owner.PropertyChanged += OnOwnerPropertyChanged;
-            //CreateScriptableObjectInstanceFromType is not allowed to be called from a ScriptableObject constructor (or instance field initializer)
-            wrapperSO = ScriptableObject.CreateInstance<WrapperSO>();
-            RefreshData();
-        }
-
-        public override void OnDisable()
-        {
-            if (Owner)
-                Owner.PropertyChanged -= OnOwnerPropertyChanged;
-            serializedObject?.Dispose();
-            Object.DestroyImmediate(wrapperSO);
-        }
-
-        private void RefreshData()
-        {
-            SetData(Owner.CurState);
-        }
-        
-        private void SetData(StateConfig data)
-        {
-            Data = data;
-            GetOrCreateWrapperSO().Data = data;
-            serializedObject?.Dispose();
-            serializedObject = null;
-            if (data != null)
-            {
-                data.HideFoldout = true;
-                serializedObject = new SerializedObject(GetOrCreateWrapperSO());
-            }
         }
 
         protected override void OnGUI(Rect contentRect)
@@ -72,10 +32,11 @@ namespace ACTSkillEditor
             GUILayout.BeginArea(contentRect);
             GUILayout.BeginVertical();
 
-            if (serializedObject != null && serializedObject.targetObject)
+            var property = Owner.CurStateProperty;
+            if (property != null)
             {
                 scrollPosition = GUILayout.BeginScrollView(scrollPosition);
-                EditorGUIExtensions.DrawDefaultInspectorWithoutScript(serializedObject);
+                DrawProperty(property);
                 GUILayout.EndScrollView();
             }
 
@@ -83,21 +44,43 @@ namespace ACTSkillEditor
             GUILayout.EndArea();
         }
         
+        public static void DrawProperty(SerializedProperty property)
+        {
+            if (property == null) return;
+            // EditorGUILayout.PropertyField(property, true);
+            // Skip
+            string propertyPath = property.propertyPath;
+            bool enterChildren = true;
+            while (property.NextVisible(enterChildren) && property.propertyPath.StartsWith(propertyPath))
+            {
+                enterChildren = false;
+                string relativePath = property.propertyPath.Substring(propertyPath.Length + 1);
+                if (relativePath != nameof(StateConfig.Frames) && relativePath != nameof(StateConfig.ActionConfig))
+                    EditorGUILayout.PropertyField(property, true);
+            }
+        }
+        
         public override object CopyData()
         {
-            return Data?.Clone();
+            return CopyStateSetting(Data);
         }
 
         public override void PasteData(object data)
         {
             if (Data == null || data is not StateConfig other) return;
-            Data.Copy(other);
+            Owner.RecordObject("Paste state setting");
+            PasteStateSetting(other, Data);
+        }
+
+        public static StateConfig CopyStateSetting(StateConfig data)
+        {
+            return data?.CloneStateSetting();
         }
         
-        private void OnOwnerPropertyChanged(object sender, PropertyChangedEventArgs e)
+        public static void PasteStateSetting(object from, StateConfig to)
         {
-            if (e.PropertyName == nameof(ACTSkillEditorWindow.CurState))
-                RefreshData();
+            if (to == null || from is not StateConfig other) return;
+            to.CopyStateSetting(other);
         }
     }
 }

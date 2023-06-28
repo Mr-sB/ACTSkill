@@ -3,10 +3,10 @@ namespace ACTSkill
     public class ActionNode
     {
         public StateHandler Owner { internal set; get; }
-        public IAction Config { internal set; get; }
+        public ActionBase Config { internal set; get; }
         public IActionHandler Handler { internal set; get; }
 
-        public void Init(StateHandler owner, IAction config, IActionHandler handler)
+        public void Init(StateHandler owner, ActionBase config, IActionHandler handler)
         {
             Owner = owner;
             Config = config;

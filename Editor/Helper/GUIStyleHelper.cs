@@ -12,6 +12,8 @@ namespace ACTSkillEditor
         public static readonly GUIStyle ItemHeadSelect = new GUIStyle("OL SelectedRow") {alignment = TextAnchor.MiddleCenter};
         public static readonly GUIStyle ItemBodyNormal = "ScrollViewAlt";
         public static readonly GUIStyle ItemBodySelect = "TE ElementBackground";
+        public static readonly GUIStyle InspectorBig = "In BigTitle"; // = EditorStyles.inspectorBig
+        public static readonly GUIStyle InspectorTitlebarText = new GUIStyle("IN TitleText") {alignment = TextAnchor.MiddleCenter}; // = EditorStyles.inspectorTitlebarText
 
         private static GUIContent playButtonContent;
         public static GUIContent PlayButtonContent

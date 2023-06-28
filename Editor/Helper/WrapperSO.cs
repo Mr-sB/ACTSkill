@@ -5,19 +5,9 @@ namespace ACTSkillEditor
 {
     public class WrapperSO : ScriptableObject
     {
-        [SerializeReference]
-        public object Data;
-
-        public event Action OnValidateEvent;
-        
-        public void OnValidate()
-        {
-            OnValidateEvent?.Invoke();
-        }
-
-        private void OnDestroy()
-        {
-            OnValidateEvent = null;
-        }
+        public Func<string> NameGetter;
+        public Action DrawInspectorGUI;
+        public Action DoCopy;
+        public Action DoPaste;
     }
 }

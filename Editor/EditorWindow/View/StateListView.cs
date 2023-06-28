@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using ACTSkill;
-using CustomizationInspector.Editor;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
@@ -20,8 +19,11 @@ namespace ACTSkillEditor
         //More than the number, use dictionary
         // public const int STATE_COUNT_THRESHOLD = 30;
         public const int STATE_COUNT_THRESHOLD = 0;
-        public MachineConfig Data { private set; get; }
+        private static readonly string WrapperName = typeof(StateConfig).FullName;
 
+        public MachineConfig Data => Owner ? Owner.CurMachine : null;
+
+        // private GUIContent guiContent;
         private ReorderableList reorderableList;
         private Vector2 scrollPosition = Vector2.zero;
         private WrapperSO wrapperSO;
@@ -34,16 +36,38 @@ namespace ACTSkillEditor
         private WrapperSO GetOrCreateWrapperSO()
         {
             if (!wrapperSO)
-            {
                 wrapperSO = ScriptableObject.CreateInstance<WrapperSO>();
-                wrapperSO.OnValidateEvent += OnWrapperSOValidate;
-            }
+            wrapperSO.NameGetter = () => WrapperName;
+            wrapperSO.DrawInspectorGUI ??= () =>
+            {
+                var property = Owner.CurStateProperty;
+                if (property == null) return;
+                Owner.SerializedObject?.UpdateIfRequiredOrScript();
+                EditorGUI.BeginChangeCheck();
+                // Even if includeChildren is set to false, the child will still be drawn.
+                // guiContent.tooltip = property.tooltip;
+                // if (EditorGUILayout.PropertyField(property, guiContent, false))
+                //     StateSettingView.DrawProperty(property);
+                StateSettingView.DrawProperty(property);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Owner.ApplyModifiedProperties();
+                    Owner.Repaint();
+                }
+            };
+            wrapperSO.DoCopy ??= () => ACTSkillEditorWindow.CopyBuffer = StateSettingView.CopyStateSetting(Owner.CurState);
+            wrapperSO.DoPaste ??= () =>
+            {
+                Owner.RecordObject("Paste state setting");
+                StateSettingView.PasteStateSetting(ACTSkillEditorWindow.CopyBuffer, Owner.CurState);
+                Owner.Repaint();
+            };
             return wrapperSO;
         }
         
-        private ReorderableList InitReorderableList<T>(List<T> elements)
+        private ReorderableList InitReorderableList(SerializedProperty property)
         {
-            ReorderableList list = new ReorderableList(elements, typeof(T),
+            ReorderableList list = new ReorderableList(property.serializedObject, property,
                 true, true, true, true);
             list.multiSelect = false;
             list.drawHeaderCallback = position =>
@@ -59,24 +83,9 @@ namespace ACTSkillEditor
         
             list.drawElementCallback = (rect, index, active, focused) =>
             {
-                var element = list.list[index];
-                bool hasSameName = false;
-                string name = element == null ? TypeDropdown.NULL_TYPE_NAME : element.ToString();
-                
-                if (stateNameDict?.Count > 0)
-                    hasSameName = stateNameDict.TryGetValue(name, out var num) && num > 1;
-                else
-                {
-                    for (var i = 0; i < list.list.Count; i++)
-                    {
-                        var obj = list.list[i];
-                        if ((obj == null ? TypeDropdown.NULL_TYPE_NAME : obj.ToString()) == name && i != index)
-                        {
-                            hasSameName = true;
-                            break;
-                        }
-                    }
-                }
+                var elementProperty = list.serializedProperty.GetArrayElementAtIndex(index);
+                string name = elementProperty.FindPropertyRelative(nameof(StateConfig.StateName)).stringValue;
+                bool hasSameName = HasSameName(name, list.serializedProperty, index);
 
                 //Name
                 var oldColor = GUI.color;
@@ -86,25 +95,20 @@ namespace ACTSkillEditor
                 if (hasSameName)
                     GUI.color = oldColor;
                 
-                if (element is StateConfig state)
+                //Loop
+                Rect loopRect = rect;
+                loopRect.xMin = loopRect.xMax - 20;
+                var loopProperty = elementProperty.FindPropertyRelative(nameof(StateConfig.Loop));
+                if (GUI.Button(loopRect, loopProperty.boolValue ? GUIStyleHelper.LoopOnTexture : GUIStyleHelper.LoopOffTexture, GUIStyle.none))
                 {
-                    //Loop
-                    Rect loopRect = rect;
-                    loopRect.xMin = loopRect.xMax - 20;
-                    if (GUI.Button(loopRect, state.Loop ? GUIStyleHelper.LoopOnTexture : GUIStyleHelper.LoopOffTexture, GUIStyle.none))
-                    {
-                        state.Loop = !state.Loop;
-                        Event.current.Use();
-                    }
+                    loopProperty.boolValue = !loopProperty.boolValue;
+                    Event.current.Use();
                 }
                 
                 if (active)
                 {
                     if (Owner && Owner.SelectedStateIndex != index)
-                    {
                         Owner.SelectedStateIndex = index;
-                        GetOrCreateWrapperSO().Data = Owner.CurState;
-                    }
                 }
                 if (focused)
                 {
@@ -121,35 +125,56 @@ namespace ACTSkillEditor
                 var newStateWindow = NewStateWindow.Create();
                 newStateWindow.WindowClosed += newStateName =>
                 {
-                    if (l.list == null) return;
-                    bool canAdd = true;
-                    foreach (var obj in l.list)
-                    {
-                        if (obj is not StateConfig state) continue;
-                        if (state.StateName == newStateName)
-                            canAdd = false;
-                    }
+                    if (l.serializedProperty == null) return;
+                    bool hasSameName = HasSameName(newStateName, l.serializedProperty, null);
 
-                    if (canAdd)
+                    if (Owner)
                     {
-                        l.list.Add(new StateConfig {StateName = newStateName});
-                        l.index = l.list.Count - 1;
+                        if (!hasSameName)
+                        {
+                            int size = l.serializedProperty.arraySize;
+                            l.serializedProperty.InsertArrayElementAtIndex(size);
+                            l.serializedProperty.GetArrayElementAtIndex(size).FindPropertyRelative(nameof(StateConfig.StateName)).stringValue = newStateName;
+                            l.index = size;
+                            Owner.ApplyModifiedProperties();
+                            Owner.Repaint();
+                        }
+                        else
+                            Owner.ShowNotification("Can not add state with same name!", 3, LogType.Error);
                     }
-                    else if (Owner)
-                        Owner.ShowNotification("Can not add state with same name!", 3, LogType.Error);
                 };
                 newStateWindow.ShowAsDropDown(rect);
             };
             
             return list;
         }
+
+        private bool HasSameName(string name, SerializedProperty serializedProperty, int? exceptIndex)
+        {
+            if (serializedProperty == null) return false;
+            bool hasSameName = false;
+            if (stateNameDict?.Count > 0)
+                hasSameName = stateNameDict.TryGetValue(name, out var num) && num > (exceptIndex.HasValue ? 1 : 0);
+            else
+            {
+                for (int i = 0, size = serializedProperty.arraySize; i < size; i++)
+                {
+                    if (exceptIndex != i && serializedProperty.GetArrayElementAtIndex(i).FindPropertyRelative(nameof(StateConfig.StateName)).stringValue == name)
+                    {
+                        hasSameName = true;
+                        break;
+                    }
+                }
+            }
+            return hasSameName;
+        }
         
-        private ReorderableList GetReorderableList()
+        private ReorderableList GetReorderableList(SerializedProperty property)
         {
             if (reorderableList == null)
-                reorderableList = InitReorderableList(Data.States);
-            else
-                reorderableList.list = Data.States;
+                reorderableList = InitReorderableList(property);
+            else if (reorderableList.serializedProperty != property)
+                reorderableList.serializedProperty = property;
             if (Data.States.Count > STATE_COUNT_THRESHOLD)
             {
                 if (stateNameDict == null)
@@ -175,62 +200,44 @@ namespace ACTSkillEditor
         {
             if (string.IsNullOrEmpty(title))
                 title = ObjectNames.NicifyVariableName(nameof(StateListView));
-            Owner.PropertyChanged += OnOwnerPropertyChanged;
-            //CreateScriptableObjectInstanceFromType is not allowed to be called from a ScriptableObject constructor (or instance field initializer)
-            GetOrCreateWrapperSO();
-            RefreshData();
-        }
-        
-        private void RefreshData()
-        {
-            SetData(Owner.CurMachine);
+            // guiContent = new GUIContent(typeof(StateConfig).FullName);
+            Owner.PropertyChanging += OnOwnerPropertyChanging;
         }
 
-        private void SetData(MachineConfig data)
-        {
-            Data = data;
-        }
-        
         protected override void OnGUI(Rect contentRect)
         {
-            if (Data == null) return;
             GUILayout.BeginArea(contentRect);
             GUILayout.BeginVertical();
 
-            if (Data != null)
+            var property = Owner.CurMachineProperty;
+            if (property != null)
             {
-                var oldLabelWidth = EditorGUIUtility.labelWidth;
-                
                 //DefaultStateName
-                GUIContent content = EditorUtil.TempContent(ObjectNames.NicifyVariableName(nameof(Data.DefaultStateName)));
-                EditorGUIUtility.labelWidth = EditorStyles.textField.CalcSize(content).x;
-                Data.DefaultStateName = EditorGUILayout.TextField(content, Data.DefaultStateName);
+                EditorGUILayout.PropertyField(property.FindPropertyRelative(nameof(MachineConfig.DefaultStateName)), true);
                 
                 //DefaultStateTransition
-                content = EditorUtil.TempContent(ObjectNames.NicifyVariableName(nameof(Data.DefaultStateTransition)));
-                FieldInspector.DrawFieldLayout(content, typeof(AnimationTransitionConfig), Data.DefaultStateTransition, Owner);
+                EditorGUILayout.PropertyField(property.FindPropertyRelative(nameof(MachineConfig.DefaultStateTransition)), true);
                 
-                EditorGUIUtility.labelWidth = oldLabelWidth;
-
                 //List
                 scrollPosition = GUILayout.BeginScrollView(scrollPosition);
-                GetReorderableList().DoLayoutList();
+                GetReorderableList(property.FindPropertyRelative(nameof(MachineConfig.States))).DoLayoutList();
                 GUILayout.EndScrollView();
             }
 
             GUILayout.EndVertical();
             GUILayout.EndArea();
+
+            // Repaint inspector
+            if (wrapperSO && Selection.activeObject == wrapperSO)
+                EditorUtility.SetDirty(wrapperSO);
         }
 
         public override void OnDisable()
         {
             if (Owner)
-                Owner.PropertyChanged -= OnOwnerPropertyChanged;
+                Owner.PropertyChanging -= OnOwnerPropertyChanging;
             if (wrapperSO)
-            {
-                wrapperSO.OnValidateEvent -= OnWrapperSOValidate;
                 Object.DestroyImmediate(wrapperSO);
-            }
         }
 
         public override object CopyData()
@@ -241,24 +248,18 @@ namespace ACTSkillEditor
         public override void PasteData(object data)
         {
             if (Data == null || data is not MachineConfig other) return;
+            Owner.RecordObject("Paste state list");
             Data.Copy(other);
+            Owner.SelectedStateIndex = -1;
         }
         
-        private void OnOwnerPropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void OnOwnerPropertyChanging(object sender, PropertyChangingEventArgs e)
         {
-            if (e.PropertyName == nameof(ACTSkillEditorWindow.CurMachine))
-                RefreshData();
-            else if (e.PropertyName == nameof(ACTSkillEditorWindow.CurState))
+            if (e.PropertyName == nameof(ACTSkillEditorWindow.CurState))
             {
-                if (Selection.activeObject is WrapperSO so && so.Data == Owner.CurState)
+                if (Selection.activeObject is WrapperSO so && so == wrapperSO)
                     Selection.activeObject = null;
             }
-        }
-
-        private void OnWrapperSOValidate()
-        {
-            if (Owner)
-                Owner.Repaint();
         }
     }
 }

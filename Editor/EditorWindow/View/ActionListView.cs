@@ -1,6 +1,4 @@
-using System.ComponentModel;
 using ACTSkill;
-using CustomizationInspector.Editor;
 using UnityEditor;
 using UnityEngine;
 
@@ -16,55 +14,16 @@ namespace ACTSkillEditor
         }
         
         private Vector2 scrollPosition = Vector2.zero;
-        private WrapperSO wrapperSO;
-        private SerializedObject serializedObject;
-        public ActionConfig Data { private set; get; }
+        public ActionConfig Data => Owner ? Owner.CurActionConfig : null;
         
         public ActionListView(ACTSkillEditorWindow owner) : base(owner)
         {
-        }
-        
-        private WrapperSO GetOrCreateWrapperSO()
-        {
-            if (!wrapperSO)
-                wrapperSO = ScriptableObject.CreateInstance<WrapperSO>();
-            return wrapperSO;
         }
 
         public override void OnEnable()
         {
             if (string.IsNullOrEmpty(title))
                 title = ObjectNames.NicifyVariableName(nameof(ActionListView));
-            Owner.PropertyChanged += OnOwnerPropertyChanged;
-            //CreateScriptableObjectInstanceFromType is not allowed to be called from a ScriptableObject constructor (or instance field initializer)
-            wrapperSO = ScriptableObject.CreateInstance<WrapperSO>();
-            RefreshData();
-        }
-
-        public override void OnDisable()
-        {
-            if (Owner)
-                Owner.PropertyChanged -= OnOwnerPropertyChanged;
-            serializedObject?.Dispose();
-            Object.DestroyImmediate(wrapperSO);
-        }
-
-        private void RefreshData()
-        {
-            SetData(Owner.CurActionConfig);
-        }
-
-        private void SetData(ActionConfig data)
-        {
-            Data = data;
-            GetOrCreateWrapperSO().Data = data;
-            serializedObject?.Dispose();
-            serializedObject = null;
-            if (data != null)
-            {
-                data.HideFoldout = true;
-                serializedObject = new SerializedObject(GetOrCreateWrapperSO());
-            }
         }
         
         protected override void OnGUI(Rect contentRect)
@@ -72,10 +31,19 @@ namespace ACTSkillEditor
             GUILayout.BeginArea(contentRect);
             GUILayout.BeginVertical();
 
-            if (serializedObject != null && serializedObject.targetObject)
+            var property = Owner.CurActionConfigProperty;
+            if (property != null)
             {
                 scrollPosition = GUILayout.BeginScrollView(scrollPosition);
-                EditorGUIExtensions.DrawDefaultInspectorWithoutScript(serializedObject);
+                // EditorGUILayout.PropertyField(property, true);
+                // Skip
+                string propertyPath = property.propertyPath;
+                bool enterChildren = true;
+                while (property.NextVisible(enterChildren) && property.propertyPath.StartsWith(propertyPath))
+                {
+                    enterChildren = false;
+                    EditorGUILayout.PropertyField(property, true);
+                }
                 GUILayout.EndScrollView();
             }
 
@@ -91,13 +59,9 @@ namespace ACTSkillEditor
         public override void PasteData(object data)
         {
             if (Data == null || data is not ActionConfig other) return;
+            Owner.RecordObject("Paste action list");
             Data.Copy(other);
-        }
-        
-        private void OnOwnerPropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(ACTSkillEditorWindow.CurActionConfig))
-                RefreshData();
+            Owner.SelectedActionIndex = -1;
         }
     }
 }

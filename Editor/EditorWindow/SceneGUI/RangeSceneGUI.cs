@@ -195,16 +195,19 @@ namespace ACTSkillEditor
             bool change = false;
             if (newOffset != offset)
             {
+                Owner.RecordObject("Change range offset");
                 range.SetOffset(newOffset);
                 change = true;
             }
             if (newRotation.eulerAngles != rotation)
             {
+                Owner.RecordObject("Change range rotation");
                 range.SetRotation(newRotation.eulerAngles);
                 change = true;
             }
             if (newSize != size)
             {
+                Owner.RecordObject("Change range size");
                 range.SetSize(newSize);
                 change = true;
             }

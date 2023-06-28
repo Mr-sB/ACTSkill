@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
 using CustomizationInspector.Runtime;
-using UnityEngine;
 
 namespace ACTSkill
 {
     [Serializable]
-    public class StateConfig : HideableFoldout, ICopyable
+    public class StateConfig : ICopyable
     {
         private const int LABEL_WIDTH = 109;
         
@@ -34,9 +33,8 @@ namespace ACTSkill
         [HideIf(nameof(Loop))]
         public AnimationTransitionConfig NextStateTransition = new AnimationTransitionConfig();
 
-        [HideInInspector]
+        // Can not use HideInInspector, otherwise can not get serialized property.
         public List<FrameConfig> Frames = new List<FrameConfig>();
-        [HideInInspector]
         public ActionConfig ActionConfig = new ActionConfig();
         
         public string DefaultAnimName => GetAnimName(DefaultAnimIndex);
@@ -71,12 +69,7 @@ namespace ACTSkill
         public void Copy(StateConfig other)
         {
             if (other == null) return;
-            StateName = other.StateName;
-            DefaultAnimIndex = other.DefaultAnimIndex;
-            Animations.Clear();
-            Loop = other.Loop;
-            NextStateName = other.NextStateName;
-            NextStateTransition.Copy(other.NextStateTransition);
+            CopyStateSetting(other);
             if (other.Animations != null)
                 Animations.AddRange(other.Animations);
             Frames.Clear();
@@ -86,9 +79,27 @@ namespace ACTSkill
             ActionConfig.Copy(other.ActionConfig);
         }
         
+        public void CopyStateSetting(StateConfig other)
+        {
+            if (other == null) return;
+            StateName = other.StateName;
+            DefaultAnimIndex = other.DefaultAnimIndex;
+            Animations.Clear();
+            Loop = other.Loop;
+            NextStateName = other.NextStateName;
+            NextStateTransition.Copy(other.NextStateTransition);
+        }
+        
         public StateConfig Clone()
         {
             return new StateConfig(this);
+        }
+
+        public StateConfig CloneStateSetting()
+        {
+            var clone = new StateConfig();
+            clone.CopyStateSetting(this);
+            return clone;
         }
 
         public void Copy(object obj)
@@ -99,7 +110,7 @@ namespace ACTSkill
 
         object ICloneable.Clone()
         {
-            return new StateConfig();
+            return Clone();
         }
 
         public override string ToString()

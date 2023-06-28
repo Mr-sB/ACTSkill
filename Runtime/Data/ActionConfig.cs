@@ -6,13 +6,13 @@ using UnityEngine;
 namespace ACTSkill
 {
     [Serializable]
-    public class ActionConfig : HideableFoldout, ICopyable
+    public class ActionConfig : ICopyable
     {
         [MinLabelWidth(80)]
         [MaxLabelWidth(110)]
         [SerializeReference]
         [SerializeReferenceSelector]
-        public List<IAction> Actions = new List<IAction>();
+        public List<ActionBase> Actions = new List<ActionBase>();
 
         public ActionConfig() { }
 
@@ -24,7 +24,6 @@ namespace ACTSkill
         public void Copy(ActionConfig other)
         {
             if (other == null) return;
-            HideFoldout = other.HideFoldout;
             Actions.Clear();
             if (other.Actions != null)
                 foreach (var range in other.Actions)

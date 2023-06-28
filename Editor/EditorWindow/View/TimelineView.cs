@@ -55,8 +55,15 @@ namespace ACTSkillEditor
 
         #endregion
 
+        public List<FrameConfig> Data => Owner ? Owner.CurFrames : null;
         private Vector2 dragOffset;
-        private WrapperSO wrapperSO;
+
+        private static readonly string frameWrapperName = typeof(FrameConfig).FullName;
+        private string actionWrapperName;
+        // private GUIContent frameGUIContent;
+        // private GUIContent actionGUIContent;
+        private WrapperSO frameWrapperSO;
+        private WrapperSO actionWrapperSO;
         private bool playing;
         private float playSpeed = 1;
         private float lastChangeFrameTime = 0;
@@ -67,23 +74,76 @@ namespace ACTSkillEditor
         {
         }
         
-        private WrapperSO GetOrCreateWrapperSO()
+        private WrapperSO GetOrCreateFrameWrapperSO()
         {
-            if (!wrapperSO)
+            if (!frameWrapperSO)
+                frameWrapperSO = ScriptableObject.CreateInstance<WrapperSO>();
+            frameWrapperSO.NameGetter = () => frameWrapperName;
+            frameWrapperSO.DrawInspectorGUI ??= () =>
             {
-                wrapperSO = ScriptableObject.CreateInstance<WrapperSO>();
-                wrapperSO.OnValidateEvent += OnWrapperSOValidate;
-            }
-            return wrapperSO;
+                var property = Owner.CurFrameConfigProperty;
+                if (property == null) return;
+                Owner.SerializedObject?.UpdateIfRequiredOrScript();
+                EditorGUI.BeginChangeCheck();
+                // frameGUIContent.tooltip = property.tooltip;
+                // EditorGUILayout.PropertyField(property, frameGUIContent, true);
+                EditorGUILayout.PropertyField(property, true);
+                Owner.ApplyModifiedProperties();
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Owner.ApplyModifiedProperties();
+                    Owner.Repaint();
+                }
+            };
+            frameWrapperSO.DoCopy ??= () => ACTSkillEditorWindow.CopyBuffer = Owner.CurFrameConfig?.Clone();
+            frameWrapperSO.DoPaste ??= () =>
+            {
+                Owner.RecordObject("Paste frame config");
+                Owner.CurFrameConfig?.Copy(ACTSkillEditorWindow.CopyBuffer);
+                Owner.Repaint();
+            };
+            return frameWrapperSO;
+        }
+        
+        private WrapperSO GetOrCreateActionWrapperSO()
+        {
+            if (!actionWrapperSO)
+                actionWrapperSO = ScriptableObject.CreateInstance<WrapperSO>();
+            actionWrapperSO.NameGetter = () => Owner.CurActionProperty?.GetObject()?.GetType().FullName ?? "Action";
+            actionWrapperSO.DrawInspectorGUI ??= () =>
+            {
+                var property = Owner.CurActionProperty;
+                if (property == null) return;
+                Owner.SerializedObject?.UpdateIfRequiredOrScript();
+                EditorGUI.BeginChangeCheck();
+                // actionGUIContent.text = property.GetObject()?.GetType().FullName ?? TypeDropdown.NULL_TYPE_NAME;
+                // actionGUIContent.tooltip = property.tooltip;
+                // EditorGUILayout.PropertyField(property, actionGUIContent, true);
+                EditorGUILayout.PropertyField(property, true);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    Owner.ApplyModifiedProperties();
+                    Owner.Repaint();
+                }
+            };
+            actionWrapperSO.DoCopy ??= () => ACTSkillEditorWindow.CopyBuffer = Owner.CurAction?.Clone();
+            actionWrapperSO.DoPaste ??= () =>
+            {
+                Owner.RecordObject("Paste action");
+                Owner.CurAction?.Copy(ACTSkillEditorWindow.CopyBuffer);
+                Owner.Repaint();
+            };
+            return actionWrapperSO;
         }
 
         public override void OnEnable()
         {
             if (string.IsNullOrEmpty(title))
                 title = ObjectNames.NicifyVariableName(nameof(TimelineView));
+            // frameGUIContent = new GUIContent(typeof(FrameConfig).FullName);
+            // actionGUIContent = new GUIContent();
             Owner.PropertyChanging += OnOwnerPropertyChanging;
             Owner.PropertyChanged += OnOwnerPropertyChanged;
-            GetOrCreateWrapperSO();
         }
 
         public override void OnDisable()
@@ -95,11 +155,10 @@ namespace ACTSkillEditor
                 Owner.PropertyChanged -= OnOwnerPropertyChanged;
             }
 
-            if (wrapperSO)
-            {
-                wrapperSO.OnValidateEvent -= OnWrapperSOValidate;
-                Object.DestroyImmediate(wrapperSO);
-            }
+            if (frameWrapperSO)
+                Object.DestroyImmediate(frameWrapperSO);
+            if (actionWrapperSO)
+                Object.DestroyImmediate(actionWrapperSO);
         }
 
         protected override void OnGUI(Rect contentRect)
@@ -111,31 +170,40 @@ namespace ACTSkillEditor
             frameRect.y = toolBarRect.yMax + ELEMENT_SPACE;
             frameRect.height -= ToolBarHeight + ELEMENT_SPACE;
             DrawFrames(frameRect);
+            // Repaint inspector
+            if (frameWrapperSO && Selection.activeObject == frameWrapperSO)
+                EditorUtility.SetDirty(frameWrapperSO);
+            if (actionWrapperSO && Selection.activeObject == actionWrapperSO)
+                EditorUtility.SetDirty(actionWrapperSO);
         }
 
         public override object CopyData()
         {
-            if (Owner.CurFrames == null) return null;
-            List<FrameConfig> copy = new List<FrameConfig>(Owner.CurFrames.Count);
-            foreach (var frame in Owner.CurFrames)
+            if (Data == null) return null;
+            List<FrameConfig> copy = new List<FrameConfig>(Data.Count);
+            foreach (var frame in Data)
                 copy.Add(frame?.Clone());
             return copy;
         }
 
         public override void PasteData(object data)
         {
-            if (Owner.CurFrames == null || data is not List<FrameConfig> other) return;
-            Owner.CurFrames.Clear();
+            if (Data == null || data is not List<FrameConfig> other) return;
+            Owner.RecordObject("Paste frame list");
+            Data.Clear();
             foreach (var frame in other)
-                Owner.CurFrames.Add(frame?.Clone());
+                Data.Add(frame?.Clone());
+            Owner.SelectedFrameIndex = -1;
         }
         
         private void DrawFrames(Rect rect)
         {
-            if (Owner.CurState == null) return;
+            var frameListProperty = Owner.CurFrameListProperty;
+            if (frameListProperty == null) return;
             
-            int frameCount = Owner.CurFrames.Count;
-            int actionCount = Owner.CurActionConfig?.Actions.Count ?? 0;
+            int frameCount = frameListProperty.arraySize;
+            var actionListProperty = Owner.CurActionListProperty;
+            int actionCount = actionListProperty?.arraySize ?? 0;
 
             float scrollViewHeight = rect.height - FRAME_HEAD_HEIGHT - BarSize;
             float scrollViewWidth = (FRAME_WIDTH + FRAME_SPACE) * frameCount - FRAME_SPACE;
@@ -162,11 +230,17 @@ namespace ACTSkillEditor
                 
                 bool selected = Owner.SelectedFrameIndex == i;
                 
-                FrameConfig config = Owner.CurFrames[i];
+                var frameProperty = frameListProperty.GetArrayElementAtIndex(i);
+                var attackRangeProperty = frameProperty.FindPropertyRelative(nameof(FrameConfig.AttackRange));
+                var bodyRangeProperty = frameProperty.FindPropertyRelative(nameof(FrameConfig.BodyRange));
 
                 string title = string.Format("{0}\n{1}|{2}", i,
-                    config.AttackRange.ModifyRange ? (config.AttackRange.Ranges?.Count ?? 0).ToString() : "<-",
-                    config.BodyRange.ModifyRange ? (config.BodyRange.Ranges?.Count ?? 0).ToString() : "<-");
+                    attackRangeProperty?.FindPropertyRelative(nameof(RangeConfig.ModifyRange))?.boolValue ?? false
+                        ? (attackRangeProperty.FindPropertyRelative(nameof(RangeConfig.Ranges))?.arraySize ?? 0).ToString()
+                        : "<-",
+                    bodyRangeProperty?.FindPropertyRelative(nameof(RangeConfig.ModifyRange))?.boolValue ?? false
+                        ? (bodyRangeProperty.FindPropertyRelative(nameof(RangeConfig.Ranges))?.arraySize ?? 0).ToString()
+                        : "<-");
                 if (GUI.Button(headRect, title, selected ? GUIStyleHelper.ItemHeadSelect : GUIStyleHelper.ItemHeadNormal))
                     SelectFrame(i, true);
                 GUI.Box(itemRect, GUIContent.none, selected ? GUIStyleHelper.ItemBodySelect : GUIStyleHelper.ItemBodyNormal);
@@ -184,9 +258,9 @@ namespace ACTSkillEditor
             scrollPosition = GUI.BeginScrollView(actionPosition, scrollPosition, actionViewRect, true, true);
             for (int i = 0; i < actionCount; i++)
             {
-                IAction action = Owner.CurActionConfig.Actions[i];
                 //Do not draw null action
-                if (action == null) continue;
+                var property = actionListProperty?.GetArrayElementAtIndex(i);
+                if (property?.managedReferenceValue is not ActionBase action) continue;
                 
                 int beginFrame;
                 int endFrame;
@@ -216,6 +290,7 @@ namespace ACTSkillEditor
                 Rect loopRect = new Rect(actionRect.x + ACTION_DRAGGABLE_SPACE, actionRect.y + ACTION_HEIGHT / 2, FRAME_WIDTH / 2, ACTION_HEIGHT / 2);
                 if (GUI.Button(loopRect, action.Loop ? GUIStyleHelper.LoopOnTexture : GUIStyleHelper.LoopOffTexture, GUIStyle.none))
                 {
+                    Owner.RecordObject("Change action loop");
                     action.Loop = !action.Loop;
                     Event.current.Use();
                 }
@@ -231,7 +306,10 @@ namespace ACTSkillEditor
                         int crossFrame = Mathf.RoundToInt(delta / (FRAME_WIDTH + FRAME_SPACE));
                         //Cross at least one frame
                         if (crossFrame != 0)
+                        {
+                            Owner.RecordObject("Change action begin frame");
                             action.BeginFrame = Mathf.Clamp(beginFrame + crossFrame, 0, endFrame);
+                        }
                     }
                     //Right
                     Rect rightDragRect = actionRect;
@@ -242,7 +320,10 @@ namespace ACTSkillEditor
                         int crossFrame = Mathf.RoundToInt(delta / (FRAME_WIDTH + FRAME_SPACE));
                         //Cross at least one frame
                         if (crossFrame != 0)
+                        {
+                            Owner.RecordObject("Change action end frame");
                             action.EndFrame = Mathf.Clamp(endFrame + crossFrame, beginFrame, frameCount - 1);
+                        }
                     }
                     //Middle
                     Rect middleDragRect = actionRect;
@@ -280,6 +361,7 @@ namespace ACTSkillEditor
                                 //Cross at least one frame
                                 if (crossFrame != 0)
                                 {
+                                    Owner.RecordObject("Change action frame");
                                     action.BeginFrame = Mathf.Clamp(beginFrame + crossFrame, 0, frameCount - 1);
                                     //Read from action
                                     var newBeginFrame = Mathf.Clamp(action.BeginFrame, 0, frameCount - 1);
@@ -303,9 +385,9 @@ namespace ACTSkillEditor
             GUI.BeginScrollView(actionHeadPosition, new Vector2(0, scrollPosition.y), actionHeadViewRect, GUIStyle.none, GUIStyle.none);
             for (int i = 0; i < actionCount; i++)
             {
-                IAction action = Owner.CurActionConfig.Actions[i];
+                var property = actionListProperty?.GetArrayElementAtIndex(i);
                 //Do not draw null action
-                if (action == null) continue;
+                if (property?.managedReferenceValue is not ActionBase) continue;
                 Rect headRect = new Rect(actionViewRect.x - ACTION_HEAD_WIDTH, actionViewRect.y + (ACTION_HEIGHT + ACTION_SPACE) * i, ACTION_HEAD_WIDTH,
                     ACTION_HEIGHT);
 
@@ -341,9 +423,9 @@ namespace ACTSkillEditor
             {
                 var newFrame = Owner.SelectedFrameIndex - 1;
                 if (newFrame < 0)
-                    newFrame = Owner.CurFrames.Count - 1;
+                    newFrame = Data.Count - 1;
                 else
-                    Math.Clamp(newFrame, 0, Owner.CurFrames.Count - 1);
+                    Math.Clamp(newFrame, 0, Data.Count - 1);
                 SelectFrame(newFrame, true);
             }
 
@@ -362,17 +444,17 @@ namespace ACTSkillEditor
                 EditorStyles.toolbarButton, GUILayout.ExpandWidth(false)))
             {
                 var newFrame = Owner.SelectedFrameIndex + 1;
-                if (newFrame >= Owner.CurFrames.Count)
+                if (newFrame >= Data.Count)
                     newFrame = 0;
                 else
-                    Math.Clamp(newFrame, 0, Owner.CurFrames.Count - 1);
+                    Math.Clamp(newFrame, 0, Data.Count - 1);
                 SelectFrame(newFrame, true);
             }
 
             if (GUILayout.Button(EditorUtil.TempImageOrTextContent(
                 "Last Frame", GUIStyleHelper.LastKeyButtonContent.image, "Go to the end of the timeline"),
                 EditorStyles.toolbarButton, GUILayout.ExpandWidth(false)))
-                SelectFrame(Owner.CurFrames.Count - 1, true);
+                SelectFrame(Data.Count - 1, true);
             
             if (GUILayout.Button(EditorUtil.TempImageOrTextContent(
                     "Refresh", GUIStyleHelper.RefreshButtonContent.image, "Refresh animation"),
@@ -383,7 +465,7 @@ namespace ACTSkillEditor
             
             GUIContent content = EditorUtil.TempContent("Frame");
             EditorGUIUtility.labelWidth = EditorStyles.numberField.CalcSize(content).x;
-            var selectIndex = EditorGUILayout.IntSlider(content, Owner.SelectedFrameIndex, -1, Owner.CurFrames.Count - 1);
+            var selectIndex = EditorGUILayout.IntSlider(content, Owner.SelectedFrameIndex, -1, Data.Count - 1);
             if (selectIndex != Owner.SelectedFrameIndex)
                 SelectFrame(selectIndex, false);
             
@@ -393,18 +475,18 @@ namespace ACTSkillEditor
             
             content = EditorUtil.TempContent("Frame Count");
             EditorGUIUtility.labelWidth = EditorStyles.numberField.CalcSize(content).x;
-            int frameCount = EditorGUILayout.DelayedIntField(content, Owner.CurFrames.Count, GUILayout.MaxWidth(EditorGUIUtility.labelWidth + 50));
-            if (frameCount != Owner.CurFrames.Count)
+            int frameCount = EditorGUILayout.DelayedIntField(content, Data.Count, GUILayout.MaxWidth(EditorGUIUtility.labelWidth + 50));
+            if (frameCount != Data.Count)
             {
                 if (frameCount <= 0)
-                    Owner.CurFrames.Clear();
-                else if (frameCount > Owner.CurFrames.Count)
+                    Data.Clear();
+                else if (frameCount > Data.Count)
                 {
-                    for (int i = Owner.CurFrames.Count; i < frameCount; i++)
-                        Owner.CurFrames.Add(new FrameConfig());
+                    for (int i = Data.Count; i < frameCount; i++)
+                        Data.Add(new FrameConfig());
                 }
                 else
-                    Owner.CurFrames.RemoveRange(frameCount, Owner.CurFrames.Count - frameCount);
+                    Data.RemoveRange(frameCount, Data.Count - frameCount);
             }
             
             EditorGUIUtility.labelWidth = oldLabelWidth;
@@ -415,9 +497,8 @@ namespace ACTSkillEditor
         private void SelectFrame(int frameIndex, bool clearKeyboardControl)
         {
             Owner.SelectedFrameIndex = frameIndex;
-            GetOrCreateWrapperSO().Data = Owner.CurFrameConfig;
             if (frameIndex >= 0)
-                Selection.activeObject = GetOrCreateWrapperSO();
+                Selection.activeObject = GetOrCreateFrameWrapperSO();
             if (clearKeyboardControl)
             {
                 Event.current.Use();
@@ -429,9 +510,8 @@ namespace ACTSkillEditor
         private void SelectAction(int actionIndex, bool clearKeyboardControl)
         {
             Owner.SelectedActionIndex = actionIndex;
-            GetOrCreateWrapperSO().Data = Owner.CurAction;
             if (actionIndex >= 0)
-                Selection.activeObject = GetOrCreateWrapperSO();
+                Selection.activeObject = GetOrCreateActionWrapperSO();
             if (clearKeyboardControl)
             {
                 Event.current.Use();
@@ -505,7 +585,7 @@ namespace ACTSkillEditor
                 {
                     var remainTime = deltaTime - (float) frame / Owner.CurMachine.FrameRate;
                     lastChangeFrameTime = curTime - remainTime;
-                    int newIndex = (Owner.SelectedFrameIndex + frame) % Owner.CurFrames.Count;
+                    int newIndex = (Owner.SelectedFrameIndex + frame) % Data.Count;
                     if (newIndex != Owner.SelectedFrameIndex)
                     {
                         Owner.SelectedFrameIndex = newIndex;
@@ -531,12 +611,12 @@ namespace ACTSkillEditor
         {
             if (e.PropertyName == nameof(ACTSkillEditorWindow.CurFrameConfig))
             {
-                if (Selection.activeObject == wrapperSO && wrapperSO.Data == Owner.CurFrameConfig)
+                if (Selection.activeObject == frameWrapperSO)
                     Selection.activeObject = null;
             }
             else if (e.PropertyName == nameof(ACTSkillEditorWindow.CurAction))
             {
-                if (Selection.activeObject is WrapperSO so && so.Data == Owner.CurAction)
+                if (Selection.activeObject == actionWrapperSO)
                     Selection.activeObject = null;
             }
         }
@@ -545,15 +625,6 @@ namespace ACTSkillEditor
         {
             if (e.PropertyName == nameof(ACTSkillEditorWindow.CurFrames))
                 Pause();
-        }
-
-        private void OnWrapperSOValidate()
-        {
-            if (Owner)
-            {
-                Owner.Repaint();
-                ACTSkillEditorWindow.RepaintSceneViews();
-            }
         }
     }
 }

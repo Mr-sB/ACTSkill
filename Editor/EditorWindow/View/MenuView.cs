@@ -1,4 +1,5 @@
 using System;
+using ACTSkill;
 using CustomizationInspector.Editor;
 using UnityEditor;
 using UnityEngine;
@@ -63,7 +64,7 @@ namespace ACTSkillEditor
             {
                 var menu = new GenericMenu();
                 
-                var frameRate = Owner.CurMachine.FrameRate;
+                var frameRate = Owner.CurMachineProperty.FindPropertyRelative(nameof(MachineConfig.FrameRate)).intValue;
                 bool hasOn = false;
                 bool on = frameRate == 24;
                 hasOn |= on;
@@ -91,8 +92,10 @@ namespace ACTSkillEditor
 
         private void SetFrameRate(object userData)
         {
-            if (!Owner || Owner.CurMachine == null || userData is not int frameRate || frameRate <= 0) return;
-            Owner.CurMachine.FrameRate = frameRate;
+            var property = Owner.CurMachineProperty.FindPropertyRelative(nameof(MachineConfig.FrameRate));
+            if (property == null || userData is not int frameRate || frameRate <= 0) return;
+            property.intValue = frameRate;
+            Owner.ApplyModifiedProperties();
         }
         
         private void SetCustomizeFrameRate(object userData)
