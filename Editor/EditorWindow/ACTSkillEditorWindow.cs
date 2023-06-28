@@ -493,9 +493,6 @@ namespace ACTSkillEditor
         
         private void OnUndoRedoPerformed()
         {
-            RecordObject();
-            SerializedObject?.Update();
-            ApplyModifiedProperties();
             Repaint();
         }
 
