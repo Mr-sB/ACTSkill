@@ -122,7 +122,10 @@ namespace ACTSkillEditor
                 // actionGUIContent.tooltip = property.tooltip;
                 // EditorGUILayout.PropertyField(property, actionGUIContent, true);
                 EditorGUILayout.PropertyField(property, true);
-                if (EditorGUI.EndChangeCheck())
+                // managedReferenceValue maybe changed, try reinit cur action
+                var oldValue = Owner.CurAction;
+                Owner.InitCurAction();
+                if (EditorGUI.EndChangeCheck() || oldValue != Owner.CurAction)
                 {
                     Owner.ApplyModifiedProperties();
                     Owner.Repaint();
@@ -263,19 +266,23 @@ namespace ACTSkillEditor
                 //Do not draw null action
                 var property = actionListProperty?.GetArrayElementAtIndex(i);
                 if (property?.managedReferenceValue is not ActionBase action) continue;
+                var fullProperty = property.FindPropertyRelative(nameof(ActionBase.Full));
+                var beginFrameProperty = property.FindPropertyRelative(nameof(ActionBase.BeginFrame));
+                var endFrameProperty = property.FindPropertyRelative(nameof(ActionBase.EndFrame));
+                var loopProperty = property.FindPropertyRelative(nameof(ActionBase.Loop));
                 
                 int beginFrame;
                 int endFrame;
                 
-                if (action.Full)
+                if (fullProperty.boolValue)
                 {
                     beginFrame = 0;
                     endFrame = frameCount - 1;
                 }
                 else
                 {
-                    beginFrame = Mathf.Clamp(action.BeginFrame, 0, frameCount - 1);
-                    endFrame = Mathf.Clamp(action.EndFrame, beginFrame, frameCount - 1);
+                    beginFrame = Mathf.Clamp(beginFrameProperty.intValue, 0, frameCount - 1);
+                    endFrame = Mathf.Clamp(endFrameProperty.intValue, beginFrame, frameCount - 1);
                 }
                 
                 Rect actionRect = new Rect( actionViewRect.x + beginFrame * (FRAME_WIDTH + FRAME_SPACE), actionViewRect.y + (ACTION_HEIGHT + ACTION_SPACE) * i,
@@ -290,14 +297,13 @@ namespace ACTSkillEditor
                 GUI.Label(nameRect, nameContent, GUIStyleHelper.LabelMiddleCenter);
                 //Loop
                 Rect loopRect = new Rect(actionRect.x + ACTION_DRAGGABLE_SPACE, actionRect.y + ACTION_HEIGHT / 2, FRAME_WIDTH / 2, ACTION_HEIGHT / 2);
-                if (GUI.Button(loopRect, action.Loop ? GUIStyleHelper.LoopOnTexture : GUIStyleHelper.LoopOffTexture, GUIStyle.none))
+                if (GUI.Button(loopRect, loopProperty.boolValue ? GUIStyleHelper.LoopOnTexture : GUIStyleHelper.LoopOffTexture, GUIStyle.none))
                 {
-                    Owner.RecordObject("Change action loop");
-                    action.Loop = !action.Loop;
+                    loopProperty.boolValue = !loopProperty.boolValue;
                     Event.current.Use();
                 }
                 //Draggable frame
-                if (!action.Full)
+                if (!fullProperty.boolValue)
                 {
                     //Left
                     Rect leftDragRect = actionRect;
@@ -308,10 +314,7 @@ namespace ACTSkillEditor
                         int crossFrame = Mathf.RoundToInt(delta / (FRAME_WIDTH + FRAME_SPACE));
                         //Cross at least one frame
                         if (crossFrame != 0)
-                        {
-                            Owner.RecordObject("Change action begin frame");
-                            action.BeginFrame = Mathf.Clamp(beginFrame + crossFrame, 0, endFrame);
-                        }
+                            beginFrameProperty.intValue = Mathf.Clamp(beginFrame + crossFrame, 0, endFrame);
                     }
                     //Right
                     Rect rightDragRect = actionRect;
@@ -322,10 +325,7 @@ namespace ACTSkillEditor
                         int crossFrame = Mathf.RoundToInt(delta / (FRAME_WIDTH + FRAME_SPACE));
                         //Cross at least one frame
                         if (crossFrame != 0)
-                        {
-                            Owner.RecordObject("Change action end frame");
-                            action.EndFrame = Mathf.Clamp(endFrame + crossFrame, beginFrame, frameCount - 1);
-                        }
+                            endFrameProperty.intValue = Mathf.Clamp(endFrame + crossFrame, beginFrame, frameCount - 1);
                     }
                     //Middle
                     Rect middleDragRect = actionRect;
@@ -363,11 +363,10 @@ namespace ACTSkillEditor
                                 //Cross at least one frame
                                 if (crossFrame != 0)
                                 {
-                                    Owner.RecordObject("Change action frame");
-                                    action.BeginFrame = Mathf.Clamp(beginFrame + crossFrame, 0, frameCount - 1);
-                                    //Read from action
-                                    var newBeginFrame = Mathf.Clamp(action.BeginFrame, 0, frameCount - 1);
-                                    action.EndFrame = Mathf.Clamp(endFrame + crossFrame, newBeginFrame, frameCount - 1);
+                                    var begin = Mathf.Clamp(beginFrame + crossFrame, 0, frameCount - 1);
+                                    beginFrameProperty.intValue = begin;
+                                    var newBeginFrame = Mathf.Clamp(begin, 0, frameCount - 1);
+                                    endFrameProperty.intValue = Mathf.Clamp(endFrame + crossFrame, newBeginFrame, frameCount - 1);
                                 }
                             }
                         }

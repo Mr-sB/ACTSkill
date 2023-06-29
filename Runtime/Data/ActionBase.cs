@@ -6,13 +6,11 @@ namespace ACTSkill
     [Serializable]
     public abstract class ActionBase : ICopyable
     {
-        [SerializeField]
         public bool Full;
-        [SerializeField, HideInInspector]
+        [HideInInspector]
         public int BeginFrame;
-        [SerializeField, HideInInspector]
+        [HideInInspector]
         public int EndFrame;
-        [SerializeField]
         public bool Loop = true;
         
         public void CopyBase(ActionBase other)

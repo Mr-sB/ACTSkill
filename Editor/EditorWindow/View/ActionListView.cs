@@ -44,6 +44,11 @@ namespace ACTSkillEditor
                     enterChildren = false;
                     EditorGUILayout.PropertyField(property, true);
                 }
+                // managedReferenceValue maybe changed, try reinit cur action
+                var oldValue = Owner.CurAction;
+                Owner.InitCurAction();
+                if (oldValue != Owner.CurAction)
+                    Owner.Repaint();
                 GUILayout.EndScrollView();
             }
 

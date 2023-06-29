@@ -283,7 +283,7 @@ namespace ACTSkillEditor
                 CurFrameConfig = null;
         }
 
-        private void InitCurAction()
+        internal void InitCurAction()
         {
             if (CurActionConfig?.Actions != null && selectedActionIndex >= 0 && selectedActionIndex < CurActionConfig.Actions.Count)
                 CurAction = CurActionConfig.Actions[selectedActionIndex];
