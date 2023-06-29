@@ -33,6 +33,7 @@ namespace ACTSkillEditor
         {
         }
 
+        // ScriptableObject will be null after recompile. Call GetOrCreateActionWrapperSO method instead of wrapperSO.
         private WrapperSO GetOrCreateWrapperSO()
         {
             if (!wrapperSO)

@@ -74,6 +74,7 @@ namespace ACTSkillEditor
         {
         }
         
+        // ScriptableObject will be null after recompile. Call GetOrCreateActionWrapperSO method instead of frameWrapperSO.
         private WrapperSO GetOrCreateFrameWrapperSO()
         {
             if (!frameWrapperSO)
@@ -105,6 +106,7 @@ namespace ACTSkillEditor
             return frameWrapperSO;
         }
         
+        // ScriptableObject will be null after recompile. Call GetOrCreateActionWrapperSO method instead of actionWrapperSO.
         private WrapperSO GetOrCreateActionWrapperSO()
         {
             if (!actionWrapperSO)

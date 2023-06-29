@@ -92,31 +92,19 @@ namespace ACTSkillEditor
             }
         }
 
-        private MachineConfigSO curMachineConfigSO;
-
-        public MachineConfigSO CurMachineConfigSO
-        {
-            get => curMachineConfigSO;
-            private set
-            {
-                curMachineConfigSO = value;
-                if (serializedObject?.targetObject != curMachineConfigSO)
-                {
-                    serializedObject?.Dispose();
-                    serializedObject = new SerializedObject(curMachineConfigSO);
-                }
-            }
-        }
-
+        // Make SerializeField to get serializedProperty.
+        [SerializeField]
+        private MachineConfig curMachine;
+        
         public MachineConfig CurMachine
         {
-            get => CurMachineConfigSO.Config;
+            get => curMachine;
             private set
             {
-                if (CurMachineConfigSO.Config == value) return;
+                if (curMachine == value) return;
                 OnPropertyChanging();
                 RecordObject("Change machine config");
-                CurMachineConfigSO.Config = value;
+                curMachine = value;
                 OnPropertyChanged();
                 //Clear selection
                 SelectedStateIndex = -1;
@@ -308,9 +296,22 @@ namespace ACTSkillEditor
         #region SerializedObject
         
         private SerializedObject serializedObject;
-        public SerializedObject SerializedObject => serializedObject?.targetObject == null ? null : serializedObject;
 
-        public SerializedProperty CurMachineProperty => SerializedObject?.FindProperty(nameof(MachineConfigSO.Config));
+        public SerializedObject SerializedObject
+        {
+            get
+            {
+                if (curMachine == null) return null;
+                if (serializedObject?.targetObject != this)
+                {
+                    serializedObject?.Dispose();
+                    serializedObject = new SerializedObject(this);
+                }
+                return serializedObject;
+            }
+        }
+
+        public SerializedProperty CurMachineProperty => SerializedObject?.FindProperty(nameof(curMachine));
 
         public SerializedProperty StateListProperty => CurMachineProperty?.FindPropertyRelative(nameof(MachineConfig.States));
 
@@ -398,7 +399,7 @@ namespace ACTSkillEditor
         [MenuItem("ACTSkill/Skill Editor")]
         public static ACTSkillEditorWindow ShowEditor()
         {
-            var window = GetWindow<ACTSkillEditorWindow>(false, ObjectNames.NicifyVariableName("ACTSkillEditor"), true);
+            var window = GetWindow<ACTSkillEditorWindow>(false, "ACT Skill Editor", true);
             window.minSize = new Vector2(400f, 200f);
             return window;
         }
@@ -420,14 +421,8 @@ namespace ACTSkillEditor
         private void OnEnable()
         {
             // Init data
-            if (curMachineConfigSO == null)
-                CurMachineConfigSO = CreateInstance<MachineConfigSO>();
-            if (serializedObject?.targetObject != curMachineConfigSO)
-            {
-                serializedObject?.Dispose();
-                serializedObject = new SerializedObject(curMachineConfigSO);
-            }
-            
+            curMachine ??= new MachineConfig();
+
             SceneView.duringSceneGui += OnSceneGUI;
             EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
             Undo.undoRedoPerformed += OnUndoRedoPerformed;
@@ -694,7 +689,7 @@ namespace ACTSkillEditor
         
         public void RecordObject(string name = "Change machine config")
         {
-            Undo.RecordObject(CurMachineConfigSO, name);
+            Undo.RecordObject(this, name);
         }
         
         public void RefreshAnimationProcessor()
