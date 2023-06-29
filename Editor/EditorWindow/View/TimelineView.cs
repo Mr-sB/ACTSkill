@@ -147,7 +147,6 @@ namespace ACTSkillEditor
                 title = ObjectNames.NicifyVariableName(nameof(TimelineView));
             // frameGUIContent = new GUIContent(typeof(FrameConfig).FullName);
             // actionGUIContent = new GUIContent();
-            Owner.PropertyChanging += OnOwnerPropertyChanging;
             Owner.PropertyChanged += OnOwnerPropertyChanged;
         }
 
@@ -155,10 +154,7 @@ namespace ACTSkillEditor
         {
             Pause();
             if (Owner)
-            {
-                Owner.PropertyChanging -= OnOwnerPropertyChanging;
                 Owner.PropertyChanged -= OnOwnerPropertyChanged;
-            }
 
             if (frameWrapperSO)
                 Object.DestroyImmediate(frameWrapperSO);
@@ -606,20 +602,6 @@ namespace ACTSkillEditor
         {
             GUILayout.EndHorizontal();
             GUILayout.EndArea();
-        }
-        
-        private void OnOwnerPropertyChanging(object sender, PropertyChangingEventArgs e)
-        {
-            if (e.PropertyName == nameof(ACTSkillEditorWindow.CurFrameConfig))
-            {
-                if (Selection.activeObject == frameWrapperSO)
-                    Selection.activeObject = null;
-            }
-            else if (e.PropertyName == nameof(ACTSkillEditorWindow.CurAction))
-            {
-                if (Selection.activeObject == actionWrapperSO)
-                    Selection.activeObject = null;
-            }
         }
         
         private void OnOwnerPropertyChanged(object sender, PropertyChangedEventArgs e)

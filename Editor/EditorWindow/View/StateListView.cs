@@ -202,7 +202,6 @@ namespace ACTSkillEditor
             if (string.IsNullOrEmpty(title))
                 title = ObjectNames.NicifyVariableName(nameof(StateListView));
             // guiContent = new GUIContent(typeof(StateConfig).FullName);
-            Owner.PropertyChanging += OnOwnerPropertyChanging;
         }
 
         protected override void OnGUI(Rect contentRect)
@@ -235,8 +234,6 @@ namespace ACTSkillEditor
 
         public override void OnDisable()
         {
-            if (Owner)
-                Owner.PropertyChanging -= OnOwnerPropertyChanging;
             if (wrapperSO)
                 Object.DestroyImmediate(wrapperSO);
         }
@@ -252,15 +249,6 @@ namespace ACTSkillEditor
             Owner.RecordObject("Paste state list");
             Data.Copy(other);
             Owner.SelectedStateIndex = -1;
-        }
-        
-        private void OnOwnerPropertyChanging(object sender, PropertyChangingEventArgs e)
-        {
-            if (e.PropertyName == nameof(ACTSkillEditorWindow.CurState))
-            {
-                if (Selection.activeObject is WrapperSO so && so == wrapperSO)
-                    Selection.activeObject = null;
-            }
         }
     }
 }
