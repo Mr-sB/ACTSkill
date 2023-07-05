@@ -91,10 +91,7 @@ namespace ACTSkillEditor
                 EditorGUILayout.PropertyField(property, true);
                 Owner.ApplyModifiedProperties();
                 if (EditorGUI.EndChangeCheck())
-                {
-                    Owner.ApplyModifiedProperties();
                     Owner.Repaint();
-                }
             };
             frameWrapperSO.DoCopy ??= () => ACTSkillEditorWindow.CopyBuffer = Owner.CurFrameConfig?.Clone();
             frameWrapperSO.DoPaste ??= () =>
@@ -125,11 +122,9 @@ namespace ACTSkillEditor
                 // managedReferenceValue maybe changed, try reinit cur action
                 var oldValue = Owner.CurAction;
                 Owner.InitCurAction();
+                Owner.ApplyModifiedProperties();
                 if (EditorGUI.EndChangeCheck() || oldValue != Owner.CurAction)
-                {
-                    Owner.ApplyModifiedProperties();
                     Owner.Repaint();
-                }
             };
             actionWrapperSO.DoCopy ??= () => ACTSkillEditorWindow.CopyBuffer = Owner.CurAction?.Clone();
             actionWrapperSO.DoPaste ??= () =>

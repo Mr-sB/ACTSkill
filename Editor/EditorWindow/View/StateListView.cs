@@ -50,11 +50,9 @@ namespace ACTSkillEditor
                 // if (EditorGUILayout.PropertyField(property, guiContent, false))
                 //     StateSettingView.DrawProperty(property);
                 StateSettingView.DrawProperty(property);
+                Owner.ApplyModifiedProperties();
                 if (EditorGUI.EndChangeCheck())
-                {
-                    Owner.ApplyModifiedProperties();
                     Owner.Repaint();
-                }
             };
             wrapperSO.DoCopy ??= () => ACTSkillEditorWindow.CopyBuffer = StateSettingView.CopyStateSetting(Owner.CurState);
             wrapperSO.DoPaste ??= () =>
