@@ -159,23 +159,27 @@ namespace ACTSkillEditor
                             paramObjs[1] = handleRotation;
                             paramObjs[2] = newOffset;
                             paramObjs[3] = rotationHandleParamDefault;
+                            EditorGUI.BeginChangeCheck();
                             doRotationHandle = (Quaternion)doRotationHandleMethod.Invoke(null, paramObjs);
-                            bool same = Quaternion.Angle(doRotationHandle, handleRotation) == 0;
-                            if (!startRotation.HasValue && !same)
-                                startRotation = newRotation;
-                            
-                            if (GUIUtility.hotControl == GetDefaultXYZRotationHandleId(rotationHandleIdsDefault))
-                                //Free, delta with input rotate
-                                newRotation = doRotationHandle * newRotation;
-                            else if (!same)
-                                //Fix axis, delta with start drag rotation. Otherwise return input rotate
-                                //So judge is it same angle. Same angle means not drag, do not change rotation
-                                newRotation = doRotationHandle * (startRotation ?? newRotation);
+                            if (EditorGUI.EndChangeCheck())
+                            {
+                                startRotation ??= newRotation;
+
+                                if (GUIUtility.hotControl == GetDefaultXYZRotationHandleId(rotationHandleIdsDefault))
+                                    //Free, delta with input rotate
+                                    newRotation = doRotationHandle * newRotation;
+                                else
+                                    //Fix axis, delta with start drag rotation. Otherwise return input rotate
+                                    //So judge is it same angle. Same angle means not drag, do not change rotation
+                                    newRotation = doRotationHandle * (startRotation ?? newRotation);
+                            }
                         }
                         else
                         {
+                            EditorGUI.BeginChangeCheck();
                             doRotationHandle = Handles.DoRotationHandle(handleRotation, newOffset);
-                            newRotation = doRotationHandle;
+                            if (EditorGUI.EndChangeCheck())
+                                newRotation = doRotationHandle;
                         }
                         if (eventType == EventType.MouseUp)
                             startRotation = null;
