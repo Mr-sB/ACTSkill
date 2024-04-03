@@ -7,7 +7,9 @@ namespace ACTSkillEditor
     {
         public abstract string Title { get; set; }
 
-        public HeaderViewBase(ACTSkillEditorWindow owner) : base(owner) { }
+        public HeaderViewBase(ACTSkillEditorWindow owner, string name, params WindowNodeOption[] options) : base(owner, name, options)
+        {
+        }
 
         protected virtual void OnHeaderDraw(float headerHeight)
         {

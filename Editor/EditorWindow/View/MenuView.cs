@@ -6,9 +6,9 @@ using UnityEngine;
 
 namespace ACTSkillEditor
 {
-    public class MenuView : ViewBase
+    public class MenuView : BGViewBase
     {
-        public MenuView(ACTSkillEditorWindow owner) : base(owner)
+        public MenuView(ACTSkillEditorWindow owner, string name, params WindowNodeOption[] options) : base(owner, name, options)
         {
         }
 

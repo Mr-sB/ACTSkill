@@ -17,7 +17,7 @@ namespace ACTSkillEditor
 
         public StateConfig Data => Owner ? Owner.CurState : null;
 
-        public StateSettingView(ACTSkillEditorWindow owner) : base(owner)
+        public StateSettingView(ACTSkillEditorWindow owner, string name, params WindowNodeOption[] options) : base(owner, name, options)
         {
         }
         

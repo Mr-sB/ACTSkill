@@ -18,38 +18,8 @@ namespace ACTSkillEditor
 
         #region Style
 
-        public const float VIEW_DRAGGABLE_SPACE = 4;
         public static readonly float MenuViewHeight = EditorGUIUtility.singleLineHeight + 3;
 
-        private const float MIN_WIDTH_RATIO = 0.1f;
-        private const float MAX_WIDTH_RATIO = 0.7f;
-        private const float MIN_HEIGHT_RATIO = 0.1f;
-        private const float MAX_HEIGHT_RATIO = 0.9f;
-
-        public float FlexibleWidth => position.width;
-        public float FlexibleHeight => position.height - MenuViewHeight;
-        private float stateListWidthRatio = 0.25f;
-        private float stateListMaxWidthRatio => Mathf.Min(1 - (attackRangeWidthRatio + bodyRangeWidthRatio + MIN_WIDTH_RATIO), MAX_WIDTH_RATIO);
-        public float stateListWidth => stateListWidthRatio * FlexibleWidth;
-        private float stateListHeightRatio = 0.5f;
-        public float stateListHeight => stateListHeightRatio * FlexibleHeight;
-        
-        public float stateSettingHeight => FlexibleHeight - stateListHeight;
-
-        public float timelineWidth => FlexibleWidth - stateListWidth;
-        private float timelineHeightRatio = 0.5f;
-        public float timelineHeight => timelineHeightRatio * FlexibleHeight;
-        
-        private float attackRangeWidthRatio = 0.25f;
-        private float attackRangeMaxWidthRatio => Mathf.Min(1 - (stateListWidthRatio + bodyRangeWidthRatio + MIN_WIDTH_RATIO), MAX_WIDTH_RATIO);
-        public float attackRangeWidth => attackRangeWidthRatio * FlexibleWidth;
-        public float attackRangeHeight => FlexibleHeight - timelineHeight;
-        
-        private float bodyRangeWidthRatio = 0.25f;
-        private float bodyRangeMaxWidthRatio => Mathf.Min(1 - (stateListWidthRatio + attackRangeWidthRatio + MIN_WIDTH_RATIO), MAX_WIDTH_RATIO);
-        public float bodyRangeWidth => bodyRangeWidthRatio * FlexibleWidth;
-
-        public float actionListWidth => FlexibleWidth - stateListWidth - attackRangeWidth - bodyRangeWidth;
         #endregion
 
         #region Data
@@ -357,14 +327,8 @@ namespace ACTSkillEditor
 
         #region View
 
-        public List<ViewBase> views;
-        public MenuView menuView;
-        public StateListView stateListView;
-        public StateSettingView stateSettingView;
-        public TimelineView timelineView;
-        public RangeView attackRangeView;
-        public RangeView bodyRangeView;
-        public ActionListView actionListView;
+        public WindowTree<ViewBase> viewTree;
+        private TimelineView timelineView;
 
         #endregion
 
@@ -433,8 +397,8 @@ namespace ACTSkillEditor
             
             ShowSceneGUI = EditorPrefs.GetBool(ShowSceneGUISaveKey, true);
 
-            foreach (var view in views)
-                view.OnEnable();
+            foreach (var view in viewTree)
+                view?.OnEnable();
             
             foreach (var sceneGUI in sceneGUIs)
                 sceneGUI.OnEnable();
@@ -442,28 +406,29 @@ namespace ACTSkillEditor
 
         private void CreateViews()
         {
-            views = new List<ViewBase>();
-            
-            menuView = new MenuView(this);
-            views.Add(menuView);
-            
-            stateListView = new StateListView(this);
-            views.Add(stateListView);
-            
-            stateSettingView = new StateSettingView(this);
-            views.Add(stateSettingView);
-            
-            timelineView = new TimelineView(this);
-            views.Add(timelineView);
-            
-            attackRangeView = new RangeView(this, "Attack Range View", new AttackRangeViewHandler(this));
-            views.Add(attackRangeView);
-            
-            bodyRangeView = new RangeView(this, "Body Range View", new BodyRangeViewHandler(this));
-            views.Add(bodyRangeView);
-            
-            actionListView = new ActionListView(this);
-            views.Add(actionListView);
+            viewTree = new WindowTree<ViewBase>(new ContainerView("Container0", WindowNode.WithDirection(WindowNode.LayoutDirection.Vertical))
+            {
+                new MenuView(this, "MenuView", WindowNode.WithFixedLength(MenuViewHeight)),
+                new ContainerView("Container1", WindowNode.WithDirection(WindowNode.LayoutDirection.Horizontal))
+                {
+                    new ContainerView("Container2", WindowNode.WithDirection(WindowNode.LayoutDirection.Vertical))
+                    {
+                        new StateListView(this, "StateListView"),
+                        new StateSettingView(this, "StateSettingView"),
+                    },
+                    new ContainerView("Container3", WindowNode.WithDirection(WindowNode.LayoutDirection.Vertical))
+                    {
+                        new TimelineView(this, "TimelineView"),
+                        new ContainerView("Container4", WindowNode.WithDirection(WindowNode.LayoutDirection.Horizontal))
+                        {
+                            new RangeView(this, "Attack Range View", new AttackRangeViewHandler(this)),
+                            new RangeView(this, "Body Range View", new BodyRangeViewHandler(this)),
+                            new ActionListView(this, "ActionListView"),
+                        }
+                    }
+                }
+            });
+            timelineView = viewTree.Find("TimelineView") as TimelineView;
         }
 
         private void CreateSceneGUIs()
@@ -497,47 +462,9 @@ namespace ACTSkillEditor
             SerializedObject.UpdateIfRequiredOrScript();
             skillWindowHandler.OnGUI();
             skillWindowHandler.BeginOnGUI();
-            Rect viewRect = new Rect(0, 0, FlexibleWidth, MenuViewHeight);
-            DrawMenuView(viewRect);
             
-            Rect flexibleRect = new Rect(0, MenuViewHeight, FlexibleWidth, FlexibleHeight);
-            viewRect = flexibleRect;
-            viewRect.width = stateListWidth;
-            viewRect.height = stateListHeight;
-            DrawStateListView(viewRect);
+            viewTree.Draw(new Rect(0, 0, position.width, position.height));
             
-            viewRect = flexibleRect;
-            viewRect.y += stateListHeight;
-            viewRect.width = stateListWidth;
-            viewRect.height = stateSettingHeight;
-            DrawStateSettingView(viewRect);
-
-            viewRect = flexibleRect;
-            viewRect.x += stateListWidth;
-            viewRect.width = timelineWidth;
-            viewRect.height = timelineHeight;
-            DrawTimelineView(viewRect);
-            
-            viewRect = flexibleRect;
-            viewRect.x += stateListWidth;
-            viewRect.y += timelineHeight;
-            viewRect.width = attackRangeWidth;
-            viewRect.height = attackRangeHeight;
-            DrawAttackRangeView(viewRect);
-            
-            viewRect = flexibleRect;
-            viewRect.x += stateListWidth + attackRangeWidth;
-            viewRect.y += timelineHeight;
-            viewRect.width = bodyRangeWidth;
-            viewRect.height = attackRangeHeight;
-            DrawBodyRangeView(viewRect);
-            
-            viewRect = flexibleRect;
-            viewRect.x += stateListWidth + attackRangeWidth + bodyRangeWidth;
-            viewRect.y += timelineHeight;
-            viewRect.width = actionListWidth;
-            viewRect.height = attackRangeHeight;
-            DrawActionListView(viewRect);
             skillWindowHandler.EndOnGUI();
             
             SerializedObject.ApplyModifiedProperties();
@@ -574,9 +501,8 @@ namespace ACTSkillEditor
             EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
             Undo.undoRedoPerformed -= OnUndoRedoPerformed;
 
-            foreach (var view in views)
-                view.OnDisable();
-            views.Clear();
+            foreach (var view in viewTree)
+                view?.OnDisable();
             
             foreach (var sceneGUI in sceneGUIs)
                 sceneGUI.OnDisable();
@@ -586,88 +512,6 @@ namespace ACTSkillEditor
             skillWindowHandler = null;
             serializedObject?.Dispose();
             serializedObject = null;
-        }
-
-        private void DrawMenuView(Rect rect)
-        {
-            menuView.Draw(rect);
-        }
-        
-        private void DrawStateListView(Rect rect)
-        {
-            Rect viewRect = rect;
-            viewRect.width -= VIEW_DRAGGABLE_SPACE;
-            var dragRect = rect;
-            dragRect.xMin = dragRect.xMax - VIEW_DRAGGABLE_SPACE;
-            var delta = EditorGUIExtensions.SlideRect(dragRect, MouseCursor.ResizeHorizontal).x;
-            if (delta != 0)
-                stateListWidthRatio = Mathf.Clamp((stateListWidth + delta) / FlexibleWidth, MIN_WIDTH_RATIO, stateListMaxWidthRatio);
-            viewRect.width = stateListWidth - VIEW_DRAGGABLE_SPACE;
-            
-            dragRect = rect;
-            dragRect.yMin = dragRect.yMax - VIEW_DRAGGABLE_SPACE;
-            delta = EditorGUIExtensions.SlideRect(dragRect, MouseCursor.ResizeVertical).y;
-            if (delta != 0)
-                stateListHeightRatio = Mathf.Clamp((stateListHeight + delta) / FlexibleHeight, MIN_HEIGHT_RATIO, MAX_HEIGHT_RATIO);
-            viewRect.height = stateListHeight - VIEW_DRAGGABLE_SPACE;
-            stateListView.Draw(viewRect);
-        }
-        
-        private void DrawStateSettingView(Rect rect)
-        {
-            Rect viewRect = rect;
-            viewRect.width -= VIEW_DRAGGABLE_SPACE;
-            var dragRect = rect;
-            dragRect.xMin = dragRect.xMax - VIEW_DRAGGABLE_SPACE;
-            var delta = EditorGUIExtensions.SlideRect(dragRect, MouseCursor.ResizeHorizontal).x;
-            if (delta != 0)
-                stateListWidthRatio = Mathf.Clamp((stateListWidth + delta) / FlexibleWidth, MIN_WIDTH_RATIO, stateListMaxWidthRatio);
-            viewRect.width = stateListWidth - VIEW_DRAGGABLE_SPACE;
-            stateSettingView.Draw(viewRect);
-        }
-        
-        private void DrawTimelineView(Rect rect)
-        {
-            Rect viewRect = rect;
-            viewRect.height -= VIEW_DRAGGABLE_SPACE;
-            var dragRect = rect;
-            dragRect.yMin = viewRect.yMax - VIEW_DRAGGABLE_SPACE;
-            var delta = EditorGUIExtensions.SlideRect(dragRect, MouseCursor.ResizeVertical).y;
-            if (delta != 0)
-                timelineHeightRatio = Mathf.Clamp((timelineHeight + delta) / FlexibleHeight, MIN_HEIGHT_RATIO, MAX_HEIGHT_RATIO);
-            viewRect.height = timelineHeight - VIEW_DRAGGABLE_SPACE;
-            timelineView.Draw(viewRect);
-        }
-
-        private void DrawAttackRangeView(Rect rect)
-        {
-            Rect viewRect = rect;
-            viewRect.width -= VIEW_DRAGGABLE_SPACE;
-            var dragRect = rect;
-            dragRect.xMin = dragRect.xMax - VIEW_DRAGGABLE_SPACE;
-            var delta = EditorGUIExtensions.SlideRect(dragRect, MouseCursor.ResizeHorizontal).x;
-            if (delta != 0)
-                attackRangeWidthRatio = Mathf.Clamp((attackRangeWidth + delta) / FlexibleWidth, MIN_WIDTH_RATIO, attackRangeMaxWidthRatio);
-            viewRect.width = attackRangeWidth - VIEW_DRAGGABLE_SPACE;
-            attackRangeView.Draw(viewRect);
-        }
-        
-        private void DrawBodyRangeView(Rect rect)
-        {
-            Rect viewRect = rect;
-            viewRect.width -= VIEW_DRAGGABLE_SPACE;
-            var dragRect = rect;
-            dragRect.xMin = dragRect.xMax - VIEW_DRAGGABLE_SPACE;
-            var delta = EditorGUIExtensions.SlideRect(dragRect, MouseCursor.ResizeHorizontal).x;
-            if (delta != 0)
-                bodyRangeWidthRatio = Mathf.Clamp((bodyRangeWidth + delta) / FlexibleWidth, MIN_WIDTH_RATIO, bodyRangeMaxWidthRatio);
-            viewRect.width = bodyRangeWidth - VIEW_DRAGGABLE_SPACE;
-            bodyRangeView.Draw(viewRect);
-        }
-
-        private void DrawActionListView(Rect rect)
-        {
-            actionListView.Draw(rect);
         }
 
         public void ShowNotification(GUIContent content, double duration = 4.0, LogType? logType = LogType.Log)
@@ -700,15 +544,7 @@ namespace ACTSkillEditor
 
         public void ScrollFrameToView()
         {
-            Rect flexibleRect = new Rect(0, MenuViewHeight, FlexibleWidth, FlexibleHeight);
-
-            var viewRect = flexibleRect;
-            viewRect.x += stateListWidth;
-            viewRect.width = timelineWidth;
-            // viewRect.height = timelineHeight;
-            
-            viewRect.height = timelineHeight - VIEW_DRAGGABLE_SPACE;
-            timelineView.ScrollFrameToView(viewRect);
+            timelineView.ScrollFrameToView();
         }
 
         public void Save()

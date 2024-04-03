@@ -16,7 +16,7 @@ namespace ACTSkillEditor
         private Vector2 scrollPosition = Vector2.zero;
         public ActionConfig Data => Owner ? Owner.CurActionConfig : null;
         
-        public ActionListView(ACTSkillEditorWindow owner) : base(owner)
+        public ActionListView(ACTSkillEditorWindow owner, string name, params WindowNodeOption[] options) : base(owner, name, options)
         {
         }
 

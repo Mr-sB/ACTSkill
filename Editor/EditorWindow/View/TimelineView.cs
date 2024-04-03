@@ -21,6 +21,7 @@ namespace ACTSkillEditor
         }
 
         private Vector2 scrollPosition = Vector2.zero;
+        private float rectWidth = 0;
 
         #region Styles
         
@@ -70,7 +71,7 @@ namespace ACTSkillEditor
         private EditorCoroutine updateCoroutine;
         private EditorWaitForSeconds waitForSeconds = new EditorWaitForSeconds(0.0167f);
 
-        public TimelineView(ACTSkillEditorWindow owner) : base(owner)
+        public TimelineView(ACTSkillEditorWindow owner, string name, params WindowNodeOption[] options) : base(owner, name, options)
         {
         }
         
@@ -159,6 +160,7 @@ namespace ACTSkillEditor
 
         protected override void OnGUI(Rect contentRect)
         {
+            rectWidth = contentRect.width;
             Rect toolBarRect = contentRect;
             toolBarRect.height = ToolBarHeight;
             DrawToolBar(toolBarRect);
@@ -512,25 +514,13 @@ namespace ACTSkillEditor
             }
         }
 
-        public void ScrollFrameToView(Rect rect)
+        public void ScrollFrameToView()
         {
             if (Owner.CurState == null) return;
-            var frameCount = Owner.CurState.Frames.Count;
-            float scrollViewHeight = rect.height - FRAME_HEAD_HEIGHT - BarSize;
-            float scrollViewWidth = (FRAME_WIDTH + FRAME_SPACE) * frameCount - FRAME_SPACE;
+            float scrollViewXMin = 0;
+            float scrollViewXMax = rectWidth - ACTION_HEAD_WIDTH - BarSize;
 
-            float minViewWidth = rect.width - ACTION_HEAD_WIDTH - BarSize;
-            if (scrollViewWidth < minViewWidth)
-                scrollViewWidth = minViewWidth;
-            Rect actionPosition = new Rect(rect.x + ACTION_HEAD_WIDTH, rect.y + FRAME_HEAD_HEIGHT, rect.width - ACTION_HEAD_WIDTH, rect.height - FRAME_HEAD_HEIGHT);
-            Rect actionViewRect = new Rect(actionPosition.x, actionPosition.y, scrollViewWidth, scrollViewHeight);
-            if (actionPosition.width >= actionViewRect.width) return;
-
-            float scrollOffsetX = scrollPosition.x;
-            float scrollViewXMin = actionPosition.x + scrollOffsetX;
-            float scrollViewXMax = actionPosition.xMax + scrollOffsetX - BarSize;
-
-            float frameXMin = actionPosition.x + (FRAME_WIDTH + FRAME_SPACE) * Owner.SelectedFrameIndex;
+            float frameXMin = (FRAME_WIDTH + FRAME_SPACE) * Owner.SelectedFrameIndex;
             float frameXMax = frameXMin + FRAME_WIDTH;
             
             float? adjustOffsetX = null;
@@ -541,7 +531,7 @@ namespace ACTSkillEditor
             
             if (!adjustOffsetX.HasValue) return;
 
-            scrollPosition.x = scrollOffsetX + adjustOffsetX.Value;
+            scrollPosition.x += adjustOffsetX.Value;
         }
         
         private void Play()

@@ -1,12 +1,13 @@
+using CustomizationInspector.Editor;
 using UnityEngine;
 
 namespace ACTSkillEditor
 {
-    public abstract class ViewBase
+    public abstract class ViewBase : WindowNode
     {
         public readonly ACTSkillEditorWindow Owner;
 
-        public ViewBase(ACTSkillEditorWindow owner)
+        public ViewBase(ACTSkillEditorWindow owner, string name, params WindowNodeOption[] options) : base(name, options)
         {
             Owner = owner;
         }
@@ -15,16 +16,8 @@ namespace ACTSkillEditor
         {
         }
         
-        protected abstract void OnGUI(Rect contentRect);
-
         public virtual void OnDisable()
         {
-        }
-        
-        public virtual void Draw(Rect rect)
-        {
-            GUI.Box(rect, GUIContent.none, GUIStyleHelper.ViewBg);
-            OnGUI(rect);
         }
     }
 }

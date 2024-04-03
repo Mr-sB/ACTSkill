@@ -29,7 +29,7 @@ namespace ACTSkillEditor
         private WrapperSO wrapperSO;
         private Dictionary<string, int> stateNameDict;
 
-        public StateListView(ACTSkillEditorWindow owner) : base(owner)
+        public StateListView(ACTSkillEditorWindow owner, string name, params WindowNodeOption[] options) : base(owner, name, options)
         {
         }
 

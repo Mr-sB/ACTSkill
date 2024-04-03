@@ -6,7 +6,7 @@ namespace ACTSkillEditor
 {
     public abstract class CopyableViewBase : HeaderViewBase
     {
-        protected CopyableViewBase(ACTSkillEditorWindow owner) : base(owner)
+        protected CopyableViewBase(ACTSkillEditorWindow owner, string name, params WindowNodeOption[] options) : base(owner, name, options)
         {
         }
         

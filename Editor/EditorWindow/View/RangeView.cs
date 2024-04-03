@@ -17,8 +17,8 @@ namespace ACTSkillEditor
         private RangeViewHandlerBase handler;
         private Vector2 scrollPosition = Vector2.zero;
         private RangeConfigDrawer.RangesReorderableList reorderableList;
-
-        public RangeView(ACTSkillEditorWindow owner, string title, RangeViewHandlerBase handler) : base(owner)
+        
+        public RangeView(ACTSkillEditorWindow owner, string title, RangeViewHandlerBase handler, params WindowNodeOption[] options) : base(owner, title, options)
         {
             this.title = title;
             this.handler = handler;
