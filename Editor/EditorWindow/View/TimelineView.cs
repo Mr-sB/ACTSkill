@@ -40,6 +40,8 @@ namespace ACTSkillEditor
             get
             {
                 //You can only call GUI functions from inside OnGUI.
+                if (Event.current == null) // Not OnGUI
+                    return 13;
                 return barSize ??= GUI.skin.horizontalScrollbar.fixedHeight;
             }
         }
@@ -517,8 +519,8 @@ namespace ACTSkillEditor
         public void ScrollFrameToView()
         {
             if (Owner.CurState == null) return;
-            float scrollViewXMin = 0;
-            float scrollViewXMax = rectWidth - ACTION_HEAD_WIDTH - BarSize;
+            float scrollViewXMin = scrollPosition.x;
+            float scrollViewXMax = scrollPosition.x + rectWidth - ACTION_HEAD_WIDTH - BarSize;
 
             float frameXMin = (FRAME_WIDTH + FRAME_SPACE) * Owner.SelectedFrameIndex;
             float frameXMax = frameXMin + FRAME_WIDTH;
