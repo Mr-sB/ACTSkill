@@ -329,6 +329,7 @@ namespace ACTSkillEditor
 
         public WindowTree<ViewBase> viewTree;
         private TimelineView timelineView;
+        private List<float> viewLengthRatioList = new List<float>();
 
         #endregion
 
@@ -429,6 +430,16 @@ namespace ACTSkillEditor
                 }
             });
             timelineView = viewTree.Find("TimelineView") as TimelineView;
+            
+            // Recovery ratio
+            int index = 0;
+            foreach (var view in viewTree)
+            {
+                if (view.IsFixed) continue;
+                if (index >= viewLengthRatioList.Count) break;
+                WindowNode.WithCurLengthRatio(viewLengthRatioList[index]).Invoke(view);
+                index++;
+            }
         }
 
         private void CreateSceneGUIs()
@@ -464,6 +475,13 @@ namespace ACTSkillEditor
             skillWindowHandler.BeginOnGUI();
             
             viewTree.Draw(new Rect(0, 0, position.width, position.height));
+            // Record ratio
+            viewLengthRatioList.Clear();
+            foreach (var view in viewTree)
+            {
+                if (!view.IsFixed)
+                    viewLengthRatioList.Add(view.CurLengthRatio);
+            }
             
             skillWindowHandler.EndOnGUI();
             
