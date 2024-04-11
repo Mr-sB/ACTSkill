@@ -53,7 +53,7 @@ namespace ACTSkillEditor
                 {
                     try
                     {
-                        animationProcessor = (AnimationProcessor) Activator.CreateInstance(type, new object[] {this});
+                        animationProcessor = (AnimationProcessor) Activator.CreateInstance(type, new object[] {Owner});
                         break;
                     }
                     catch
