@@ -327,7 +327,7 @@ namespace ACTSkillEditor
 
         #region View
 
-        public WindowTree<ViewBase> viewTree;
+        public WindowTree viewTree;
         private TimelineView timelineView;
         private List<float> viewLengthRatioList = new List<float>();
 
@@ -398,8 +398,11 @@ namespace ACTSkillEditor
             
             ShowSceneGUI = EditorPrefs.GetBool(ShowSceneGUISaveKey, true);
 
-            foreach (var view in viewTree)
-                view?.OnEnable();
+            foreach (var node in viewTree)
+            {
+                if (node is ViewBase view)
+                    view.OnEnable();
+            }
             
             foreach (var sceneGUI in sceneGUIs)
                 sceneGUI.OnEnable();
@@ -407,20 +410,20 @@ namespace ACTSkillEditor
 
         private void CreateViews()
         {
-            viewTree = new WindowTree<ViewBase>(new ContainerView("Container0", WindowNode.WithDirection(WindowNode.LayoutDirection.Vertical))
+            viewTree = new WindowTree(new ContainerNode("Container0", ContainerNode.WithDirection(ContainerNode.LayoutDirection.Vertical))
             {
-                new MenuView(this, "MenuView", WindowNode.WithFixedLength(MenuViewHeight)),
-                new ContainerView("Container1", WindowNode.WithDirection(WindowNode.LayoutDirection.Horizontal))
+                new MenuView(this, "MenuView", WindowNode.WithFixedLength(MenuViewHeight), WindowNode.WithReplaceable(false)),
+                new ContainerNode("Container1", ContainerNode.WithDirection(ContainerNode.LayoutDirection.Horizontal))
                 {
-                    new ContainerView("Container2", WindowNode.WithDirection(WindowNode.LayoutDirection.Vertical))
+                    new ContainerNode("Container2", ContainerNode.WithDirection(ContainerNode.LayoutDirection.Vertical))
                     {
                         new StateListView(this, "StateListView"),
                         new StateSettingView(this, "StateSettingView"),
                     },
-                    new ContainerView("Container3", WindowNode.WithDirection(WindowNode.LayoutDirection.Vertical))
+                    new ContainerNode("Container3", ContainerNode.WithDirection(ContainerNode.LayoutDirection.Vertical))
                     {
                         new TimelineView(this, "TimelineView"),
-                        new ContainerView("Container4", WindowNode.WithDirection(WindowNode.LayoutDirection.Horizontal))
+                        new ContainerNode("Container4", ContainerNode.WithDirection(ContainerNode.LayoutDirection.Horizontal))
                         {
                             new RangeView(this, "Attack Range View", new AttackRangeViewHandler(this)),
                             new RangeView(this, "Body Range View", new BodyRangeViewHandler(this)),
@@ -519,8 +522,11 @@ namespace ACTSkillEditor
             EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
             Undo.undoRedoPerformed -= OnUndoRedoPerformed;
 
-            foreach (var view in viewTree)
-                view?.OnDisable();
+            foreach (var node in viewTree)
+            {
+                if (node is ViewBase view)
+                    view.OnDisable();
+            }
             
             foreach (var sceneGUI in sceneGUIs)
                 sceneGUI.OnDisable();

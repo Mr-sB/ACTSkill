@@ -16,6 +16,7 @@ namespace ACTSkillEditor
 
         protected override void OnHeaderDraw(float headerHeight)
         {
+            base.OnHeaderDraw(headerHeight);
             if (GUILayout.Button(EditorUtil.TempContent("C", "Copy data"), EditorStyles.toolbarButton, GUILayout.Width(26)))
                 ACTSkillEditorWindow.CopyBuffer = CopyData();
 

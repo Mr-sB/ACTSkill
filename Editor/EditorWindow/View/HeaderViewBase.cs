@@ -13,9 +13,11 @@ namespace ACTSkillEditor
 
         protected virtual void OnHeaderDraw(float headerHeight)
         {
+            var rect = new Rect(Vector2.zero, new Vector2(Position.width, headerHeight));
+            DrawReplaceDraggable(rect);
         }
         
-        public override void Draw(Rect rect)
+        protected override void DoDraw(Rect rect)
         {
             float headerHeight = DrawHeader(rect);
             

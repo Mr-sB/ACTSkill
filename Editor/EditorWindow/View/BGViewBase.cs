@@ -8,10 +8,10 @@ namespace ACTSkillEditor
         {
         }
 
-        public override void Draw(Rect rect)
+        protected override void DoDraw(Rect rect)
         {
             GUI.Box(rect, GUIContent.none, GUIStyleHelper.ViewBg);
-            base.Draw(rect);
+            base.DoDraw(rect);
         }
     }
 }
