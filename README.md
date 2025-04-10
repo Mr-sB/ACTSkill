@@ -8,6 +8,7 @@ ACTSkill editor.
 
 ## Editor Window
 ![image](Screenshots~/EditorWindow.png)
+![image](Screenshots~/ReplaceWindowNode.gif)
 
 ## Usage
 - Click "ACTSkill/Skill Editor" menu item to open editor window.
