@@ -412,7 +412,7 @@ namespace ACTSkillEditor
         {
             viewTree = new WindowTree(new ContainerNode("Container0", ContainerNode.WithDirection(ContainerNode.LayoutDirection.Vertical))
             {
-                new MenuView(this, "MenuView", WindowNode.WithFixedLength(MenuViewHeight), WindowNode.WithReplaceable(false)),
+                new MenuView(this, "MenuView", WindowNode.WithFixedHeight(MenuViewHeight), WindowNode.WithReplaceable(false)),
                 new ContainerNode("Container1", ContainerNode.WithDirection(ContainerNode.LayoutDirection.Horizontal))
                 {
                     new ContainerNode("Container2", ContainerNode.WithDirection(ContainerNode.LayoutDirection.Vertical))
@@ -438,7 +438,7 @@ namespace ACTSkillEditor
             int index = 0;
             foreach (var view in viewTree)
             {
-                if (view.IsFixed) continue;
+                if (view.IsFixed()) continue;
                 if (index >= viewLengthRatioList.Count) break;
                 WindowNode.WithCurLengthRatio(viewLengthRatioList[index]).Invoke(view);
                 index++;
@@ -482,7 +482,7 @@ namespace ACTSkillEditor
             viewLengthRatioList.Clear();
             foreach (var view in viewTree)
             {
-                if (!view.IsFixed)
+                if (!view.IsFixed())
                     viewLengthRatioList.Add(view.CurLengthRatio);
             }
             
